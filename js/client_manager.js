@@ -1,5 +1,7 @@
 /* Fichier : js/client_manager.js */
-import { db, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where } from './config.js';
+// On importe "db" depuis votre config locale, MAIS les outils (collection, query...) depuis Internet (CDN)
+import { db } from './config.js';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getVal } from './utils.js';
 
 // --- CHARGER LA LISTE DES CLIENTS ---
@@ -9,7 +11,6 @@ export async function chargerBaseClients() {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Chargement...</td></tr>';
     
     try {
-        // On récupère les 50 derniers dossiers modifiés
         const q = query(collection(db, "dossiers_admin"), orderBy("lastModified", "desc")); 
         const querySnapshot = await getDocs(q);
         
@@ -42,14 +43,17 @@ export async function chargerBaseClients() {
     }
 }
 
-// --- SAUVEGARDER UN DOSSIER (Création ou Mise à jour) ---
+// --- SAUVEGARDER UN DOSSIER ---
 export async function sauvegarderDossier() {
-    const btn = document.getElementById('btn-save-dossier');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = "Sauvegarde..."; btn.disabled = true;
+    const btn = document.getElementById('btn-save-dossier'); // Note: Vérifiez que votre bouton a bien cet ID dans le HTML, sinon utilisez 'btn-save-bdd'
+    const actualBtn = btn || document.getElementById('btn-save-bdd'); // Fallback
+    
+    if(actualBtn) {
+        actualBtn.innerHTML = "Sauvegarde..."; 
+        actualBtn.disabled = true;
+    }
 
     try {
-        // 1. Récupération des données du formulaire (via getVal de utils.js)
         const dossierData = {
             mandant: {
                 civility: getVal("civilite_mandant"),
@@ -74,32 +78,27 @@ export async function sauvegarderDossier() {
                 profession: getVal("prof_type"),
                 nationalite: getVal("nationalite")
             },
-            // Données techniques
             type_obseques: getVal("prestation"),
             date_mise_biere: getVal("date_fermeture"),
             lieu_mise_biere: getVal("lieu_mise_biere"),
             cimetiere: getVal("cimetiere_nom"),
             
-            // Métadonnées
             lastModified: new Date().toISOString(),
             dateSignature: getVal("dateSignature"),
             villeSignature: getVal("faita")
         };
 
-        const id = document.getElementById('current_dossier_id').value;
+        const id = document.getElementById('dossier_id').value; // ID du champ caché dans votre HTML
 
         if (id) {
-            // Mise à jour
             await updateDoc(doc(db, "dossiers_admin", id), dossierData);
             alert("✅ Dossier mis à jour !");
         } else {
-            // Création
             dossierData.date_creation = new Date().toISOString();
             await addDoc(collection(db, "dossiers_admin"), dossierData);
             alert("✅ Nouveau dossier créé !");
         }
         
-        // Retour à la liste
         window.showSection('base');
         chargerBaseClients();
 
@@ -108,15 +107,17 @@ export async function sauvegarderDossier() {
         alert("Erreur sauvegarde : " + e.message);
     }
     
-    btn.innerHTML = originalText; btn.disabled = false;
+    if(actualBtn) {
+        actualBtn.innerHTML = '<i class="fas fa-save"></i> ENREGISTRER'; 
+        actualBtn.disabled = false;
+    }
 }
 
-// --- SUPPRIMER UN DOSSIER ---
 export async function supprimerDossier(id) {
     if(confirm("ATTENTION : Cette suppression est définitive.\nConfirmer ?")) {
         try {
             await deleteDoc(doc(db, "dossiers_admin", id));
-            chargerBaseClients(); // Rafraichir la liste
+            chargerBaseClients();
         } catch (e) {
             alert("Erreur suppression : " + e.message);
         }
