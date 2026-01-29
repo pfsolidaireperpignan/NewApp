@@ -1,6 +1,6 @@
-/* Fichier : script.js (À LA RACINE DU PROJET) */
+/* Fichier : script.js (CHEF D'ORCHESTRE - VERSION MODULAIRE) */
 
-// 1. IMPORTS (On va chercher les outils dans le dossier js)
+// 1. IMPORTS (On récupère nos outils)
 import { auth } from './js/config.js'; 
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -24,90 +24,97 @@ window.genererTransport = PDF.genererTransport;
 window.ouvrirDossier = ouvrirDossier;
 window.supprimerDossier = Clients.supprimerDossier;
 window.sauvegarderDossier = Clients.sauvegarderDossier;
-window.chargerBaseClients = Clients.chargerBaseClients; // Important pour le bouton "Actualiser"
+window.chargerBaseClients = Clients.chargerBaseClients; 
 
 // Fonctions Stock
 window.ajouterArticle = Stock.ajouterArticle;
 window.supprimerArticle = Stock.supprimerArticle;
 window.mouvementStock = Stock.mouvementStock;
-window.chargerStock = Stock.chargerStock; // Important pour le bouton "Stock"
+window.chargerStock = Stock.chargerStock; 
+window.ajouterArticleStock = Stock.ajouterArticle; // Alias pour compatibilité
 
-// Outils UI
+// Outils UI (Fonctions d'affichage)
 window.openAjoutStock = function() {
     document.getElementById('form-stock').classList.remove('hidden');
-    // Reset champs
     document.getElementById('st_nom').value = "";
     document.getElementById('st_qte').value = "1";
 };
 
-// 3. GESTION DE L'AUTHENTIFICATION
+// 3. GESTION DE L'AUTHENTIFICATION & NAVIGATION
 const loginScreen = document.getElementById('login-screen');
-const mainContent = document.querySelector('.main-content'); // Sélecteur corrigé
-const loader = document.getElementById('app-loader');
+const appLoader = document.getElementById('app-loader');
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // CONNECTÉ
         if(loginScreen) loginScreen.classList.add('hidden');
-        if(mainContent) mainContent.classList.remove('hidden');
-        if(loader) loader.style.display = 'none';
+        if(appLoader) appLoader.style.display = 'none';
         
-        // Démarrage : On charge le logo et les listes
+        // On charge les données
         Utils.chargerLogoBase64();
         Clients.chargerBaseClients();
         Stock.chargerStock();
         
+        // Gestion de l'heure
+        setInterval(() => {
+            const now = new Date();
+            const elTime = document.getElementById('header-time');
+            const elDate = document.getElementById('header-date');
+            if(elTime) elTime.innerText = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+            if(elDate) elDate.innerText = now.toLocaleDateString('fr-FR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        }, 1000);
+
     } else {
         // DÉCONNECTÉ
         if(loginScreen) loginScreen.classList.remove('hidden');
-        if(mainContent) mainContent.classList.add('hidden');
-        if(loader) loader.style.display = 'none';
+        if(appLoader) appLoader.style.display = 'none';
     }
 });
 
+// Connexion / Déconnexion
 window.loginFirebase = async function() {
-    const email = document.getElementById('login-email').value; // ID corrigé selon votre HTML
-    const pass = document.getElementById('login-password').value; // ID corrigé selon votre HTML
     try {
-        await signInWithEmailAndPassword(auth, email, pass);
-    } catch (e) {
-        alert("Erreur connexion : " + e.message);
-    }
+        await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+    } catch (e) { alert("Erreur connexion : " + e.message); }
 };
 
 window.logoutFirebase = async function() {
-    if(confirm("Se déconnecter ?")) {
-        await signOut(auth);
-        window.location.reload();
-    }
+    if(confirm("Se déconnecter ?")) { await signOut(auth); window.location.reload(); }
 };
 
-// 4. NAVIGATION (Pour afficher/cacher les sections)
+// 4. NAVIGATION (Afficher Accueil, Admin, Stock...)
 window.showSection = function(sectionId) {
-    // 1. Cacher toutes les vues (IDs basés sur votre HTML)
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-admin').classList.add('hidden');
-    document.getElementById('view-base').classList.add('hidden');
-    document.getElementById('view-stock').classList.add('hidden');
+    // Cacher toutes les vues
+    ['home', 'admin', 'base', 'stock'].forEach(id => {
+        const el = document.getElementById('view-' + id);
+        if(el) el.classList.add('hidden');
+    });
     
-    // 2. Afficher la cible
+    // Afficher la cible
     const target = document.getElementById('view-' + sectionId);
     if(target) target.classList.remove('hidden');
     
-    // 3. Actualiser les données si nécessaire
+    // Recharger les données si besoin
     if(sectionId === 'base') Clients.chargerBaseClients();
     if(sectionId === 'stock') Stock.chargerStock();
 };
 
-// Fonction pour ouvrir un dossier (Nouveau ou Existant)
+// Fonction Ouvrir Dossier (Nouveau ou Existant)
 function ouvrirDossier(id = null) {
-    // Si ID fourni, on charge (Code simplifié, idéalement appel à Clients.getDoc)
-    // Pour l'instant on ouvre juste le formulaire
-    document.getElementById('dossier_id').value = id || ""; // ID corrigé selon votre HTML
+    document.getElementById('dossier_id').value = id || "";
+    // Si ID vide = Nouveau dossier (reset champs)
+    if(!id) {
+        document.querySelectorAll('#view-admin input').forEach(i => i.value = "");
+        document.getElementById('prestation').selectedIndex = 0;
+        document.getElementById('faita').value = "PERPIGNAN";
+        document.getElementById('dateSignature').valueAsDate = new Date();
+    }
+    // Note : Pour l'édition d'un dossier existant, il faudrait ajouter ici l'appel à Clients.chargerDossier(id)
+    // Pour l'instant, cela ouvre juste le formulaire.
     window.showSection('admin');
 }
 
-// Fonction pour les onglets Admin (Identité / Technique)
+// Fonction Onglets Admin
 window.switchAdminTab = function(tabName) {
     document.getElementById('tab-content-identite').classList.add('hidden');
     document.getElementById('tab-content-technique').classList.add('hidden');
@@ -118,7 +125,7 @@ window.switchAdminTab = function(tabName) {
     document.getElementById('tab-btn-' + tabName).classList.add('active');
 };
 
-// Toggle des sections (Inhumation/Crémation)
+// Toggle Sections (Inhumation/Crémation...)
 window.toggleSections = function() {
     const type = document.getElementById('prestation').value;
     document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden'));
@@ -128,14 +135,14 @@ window.toggleSections = function() {
     if(type === 'Rapatriement') document.getElementById('bloc_rapatriement').classList.remove('hidden');
 };
 
-// Toggle Police/Famille
+// Toggle Police
 window.togglePolice = function() {
     const val = document.getElementById('type_presence_select').value;
     document.getElementById('police_fields').classList.toggle('hidden', val !== 'police');
     document.getElementById('famille_fields').classList.toggle('hidden', val === 'police');
 };
 
-// Boutons du Menu Mobile
+// Menu Mobile
 window.toggleSidebar = function() {
     const sidebar = document.querySelector('.sidebar');
     if(sidebar) sidebar.classList.toggle('mobile-open');
