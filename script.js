@@ -1,6 +1,6 @@
-/* Fichier : script.js (CHEF D'ORCHESTRE - VERSION MODULAIRE) */
+/* Fichier : script.js (À LA RACINE DU PROJET) */
 
-// 1. IMPORTS (On récupère nos outils)
+// 1. IMPORTS (On va chercher les outils dans le dossier js)
 import { auth } from './js/config.js'; 
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -9,8 +9,7 @@ import * as PDF from './js/pdf_admin.js';
 import * as Clients from './js/client_manager.js';
 import * as Stock from './js/stock_manager.js';
 
-// 2. EXPOSITION GLOBALE (Pour que vos boutons onclick="..." fonctionnent)
-// On "accroche" les fonctions importées à la fenêtre du navigateur
+// 2. BRANCHEMENT (C'est ici qu'on réactive les boutons !)
 window.genererPouvoir = PDF.genererPouvoir;
 window.genererDeclaration = PDF.genererDeclaration;
 window.genererDemandeInhumation = PDF.genererDemandeInhumation;
@@ -21,17 +20,29 @@ window.genererDemandeOuverture = PDF.genererDemandeOuverture;
 window.genererFermeture = PDF.genererFermeture;
 window.genererTransport = PDF.genererTransport;
 
-window.ouvrirDossier = ouvrirDossier; // Fonction UI définie plus bas
+// Fonctions Clients
+window.ouvrirDossier = ouvrirDossier;
 window.supprimerDossier = Clients.supprimerDossier;
 window.sauvegarderDossier = Clients.sauvegarderDossier;
+window.chargerBaseClients = Clients.chargerBaseClients; // Important pour le bouton "Actualiser"
 
+// Fonctions Stock
 window.ajouterArticle = Stock.ajouterArticle;
 window.supprimerArticle = Stock.supprimerArticle;
 window.mouvementStock = Stock.mouvementStock;
+window.chargerStock = Stock.chargerStock; // Important pour le bouton "Stock"
+
+// Outils UI
+window.openAjoutStock = function() {
+    document.getElementById('form-stock').classList.remove('hidden');
+    // Reset champs
+    document.getElementById('st_nom').value = "";
+    document.getElementById('st_qte').value = "1";
+};
 
 // 3. GESTION DE L'AUTHENTIFICATION
 const loginScreen = document.getElementById('login-screen');
-const mainContent = document.getElementById('main-content');
+const mainContent = document.querySelector('.main-content'); // Sélecteur corrigé
 const loader = document.getElementById('app-loader');
 
 onAuthStateChanged(auth, (user) => {
@@ -41,7 +52,7 @@ onAuthStateChanged(auth, (user) => {
         if(mainContent) mainContent.classList.remove('hidden');
         if(loader) loader.style.display = 'none';
         
-        // On charge les données
+        // Démarrage : On charge le logo et les listes
         Utils.chargerLogoBase64();
         Clients.chargerBaseClients();
         Stock.chargerStock();
@@ -55,8 +66,8 @@ onAuthStateChanged(auth, (user) => {
 });
 
 window.loginFirebase = async function() {
-    const email = document.getElementById('email-input').value;
-    const pass = document.getElementById('password-input').value;
+    const email = document.getElementById('login-email').value; // ID corrigé selon votre HTML
+    const pass = document.getElementById('login-password').value; // ID corrigé selon votre HTML
     try {
         await signInWithEmailAndPassword(auth, email, pass);
     } catch (e) {
@@ -71,59 +82,61 @@ window.logoutFirebase = async function() {
     }
 };
 
-window.resetPassword = async function() {
-    const email = prompt("Votre email pour la réinitialisation :");
-    if(email) {
-        try {
-            await sendPasswordResetEmail(auth, email);
-            alert("Email envoyé ! Vérifiez vos spams.");
-        } catch(e) { alert("Erreur : " + e.message); }
-    }
-};
-
-// 4. GESTION DE L'INTERFACE (UI)
+// 4. NAVIGATION (Pour afficher/cacher les sections)
 window.showSection = function(sectionId) {
-    // Masquer toutes les sections
-    document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    // 1. Cacher toutes les vues (IDs basés sur votre HTML)
+    document.getElementById('view-home').classList.add('hidden');
+    document.getElementById('view-admin').classList.add('hidden');
+    document.getElementById('view-base').classList.add('hidden');
+    document.getElementById('view-stock').classList.add('hidden');
     
-    // Afficher la bonne
-    const target = document.getElementById(sectionId);
+    // 2. Afficher la cible
+    const target = document.getElementById('view-' + sectionId);
     if(target) target.classList.remove('hidden');
     
-    // Activer le menu
-    const btn = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-    if(btn) btn.classList.add('active');
+    // 3. Actualiser les données si nécessaire
+    if(sectionId === 'base') Clients.chargerBaseClients();
+    if(sectionId === 'stock') Stock.chargerStock();
 };
 
-// Ouvrir un dossier existant ou nouveau
+// Fonction pour ouvrir un dossier (Nouveau ou Existant)
 function ouvrirDossier(id = null) {
-    document.getElementById('current_dossier_id').value = id || "";
-    
-    // Reset formulaire
-    document.querySelectorAll('#form-dossier input, #form-dossier select').forEach(i => i.value = "");
-    
-    // Dates par défaut
-    if(!id) {
-        document.getElementById('dateSignature').valueAsDate = new Date();
-    }
-
-    // Si modification, on remplit les champs (Logique simplifiée pour l'exemple)
-    // Idéalement, il faudrait récupérer le doc précis ici via Clients.getDoc...
-    // Pour l'instant, l'utilisateur va cliquer sur "Modifier" et ça ouvrira la section vide
-    // Amélioration future : Pré-remplir les champs.
-    
+    // Si ID fourni, on charge (Code simplifié, idéalement appel à Clients.getDoc)
+    // Pour l'instant on ouvre juste le formulaire
+    document.getElementById('dossier_id').value = id || ""; // ID corrigé selon votre HTML
     window.showSection('admin');
 }
 
-// Menu Mobile
+// Fonction pour les onglets Admin (Identité / Technique)
+window.switchAdminTab = function(tabName) {
+    document.getElementById('tab-content-identite').classList.add('hidden');
+    document.getElementById('tab-content-technique').classList.add('hidden');
+    document.getElementById('tab-btn-identite').classList.remove('active');
+    document.getElementById('tab-btn-technique').classList.remove('active');
+    
+    document.getElementById('tab-content-' + tabName).classList.remove('hidden');
+    document.getElementById('tab-btn-' + tabName).classList.add('active');
+};
+
+// Toggle des sections (Inhumation/Crémation)
+window.toggleSections = function() {
+    const type = document.getElementById('prestation').value;
+    document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden'));
+    
+    if(type === 'Inhumation') document.getElementById('bloc_inhumation').classList.remove('hidden');
+    if(type === 'Crémation') document.getElementById('bloc_cremation').classList.remove('hidden');
+    if(type === 'Rapatriement') document.getElementById('bloc_rapatriement').classList.remove('hidden');
+};
+
+// Toggle Police/Famille
+window.togglePolice = function() {
+    const val = document.getElementById('type_presence_select').value;
+    document.getElementById('police_fields').classList.toggle('hidden', val !== 'police');
+    document.getElementById('famille_fields').classList.toggle('hidden', val === 'police');
+};
+
+// Boutons du Menu Mobile
 window.toggleSidebar = function() {
     const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('mobile-overlay');
-    if(window.innerWidth < 768) {
-        sidebar.classList.toggle('mobile-open');
-        overlay.style.display = sidebar.classList.contains('mobile-open') ? 'block' : 'none';
-    } else {
-        sidebar.classList.toggle('collapsed');
-    }
+    if(sidebar) sidebar.classList.toggle('mobile-open');
 };
