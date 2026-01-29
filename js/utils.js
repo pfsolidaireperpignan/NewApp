@@ -1,7 +1,6 @@
-/* Fichier : js/utils.js - VERSION CORRIGÉE */
+/* Fichier : js/utils.js */
 export let logoBase64 = null;
 
-// Convertit l'image HTML en Base64 pour les PDF
 export function chargerLogoBase64() {
     const img = document.getElementById('logo-source');
     if (img && img.naturalWidth > 0) {
@@ -13,18 +12,15 @@ export function chargerLogoBase64() {
     }
 }
 
-// Récupère la valeur d'un input par son ID
 export function getVal(id) {
     const el = document.getElementById(id);
     return el ? el.value : "";
 }
 
-// Formate une date YYYY-MM-DD en DD/MM/YYYY
 export function formatDate(d) {
     return d ? d.split("-").reverse().join("/") : ".................";
 }
 
-// Ajoute le filigrane (Logo en fond)
 export function ajouterFiligrane(pdf) {
     if (logoBase64) {
         try {
@@ -36,7 +32,6 @@ export function ajouterFiligrane(pdf) {
     }
 }
 
-// En-tête standard PF Solidaire
 export function headerPF(pdf, y = 20) {
     pdf.setFont("helvetica", "bold"); pdf.setTextColor(34, 155, 76); pdf.setFontSize(12);
     pdf.text("POMPES FUNEBRES SOLIDAIRE PERPIGNAN", 105, y, { align: "center" });
