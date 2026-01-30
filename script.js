@@ -1,4 +1,6 @@
-/* script.js (RACINE) - CHEF D'ORCHESTRE */
+/* script.js (DOIT ÊTRE À LA RACINE) */
+
+// 1. IMPORTS CORRIGÉS (Pointent vers le dossier js/)
 import { auth } from './js/config.js'; 
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -7,7 +9,7 @@ import * as PDF from './js/pdf_admin.js';
 import * as Clients from './js/client_manager.js';
 import * as Stock from './js/stock_manager.js';
 
-// 1. BRANCHEMENT DES BOUTONS (EXPOSITION GLOBALE)
+// 2. EXPOSITION GLOBALE (Pour que les boutons HTML fonctionnent)
 window.genererPouvoir = PDF.genererPouvoir;
 window.genererDeclaration = PDF.genererDeclaration;
 window.genererDemandeInhumation = PDF.genererDemandeInhumation;
@@ -18,34 +20,36 @@ window.genererDemandeOuverture = PDF.genererDemandeOuverture;
 window.genererFermeture = PDF.genererFermeture;
 window.genererTransport = PDF.genererTransport;
 
-// Fonctions Clients
 window.ouvrirDossier = ouvrirDossier;
 window.supprimerDossier = Clients.supprimerDossier;
 window.sauvegarderDossier = Clients.sauvegarderDossier;
 window.chargerBaseClients = Clients.chargerBaseClients; 
 
-// Fonctions Stock
 window.ajouterArticleStock = Stock.ajouterArticle;
 window.supprimerArticle = Stock.supprimerArticle;
 window.mouvementStock = Stock.mouvementStock;
 window.chargerStock = Stock.chargerStock; 
 
-// 2. AUTHENTIFICATION
+// 3. LOGIQUE UI ET NAVIGATION
+window.openAjoutStock = function() {
+    document.getElementById('form-stock').classList.remove('hidden');
+    document.getElementById('st_nom').value = "";
+    document.getElementById('st_qte').value = "1";
+};
+
+// Gestion Authentification
 const loginScreen = document.getElementById('login-screen');
 const appLoader = document.getElementById('app-loader');
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // CONNECTÉ
         if(loginScreen) loginScreen.classList.add('hidden');
         if(appLoader) appLoader.style.display = 'none';
         
-        // On charge les données
         Utils.chargerLogoBase64();
         Clients.chargerBaseClients();
         Stock.chargerStock();
         
-        // Gestion de l'heure
         setInterval(() => {
             const now = new Date();
             const elTime = document.getElementById('header-time');
@@ -55,7 +59,6 @@ onAuthStateChanged(auth, (user) => {
         }, 1000);
 
     } else {
-        // DÉCONNECTÉ
         if(loginScreen) loginScreen.classList.remove('hidden');
         if(appLoader) appLoader.style.display = 'none';
     }
@@ -71,15 +74,7 @@ window.logoutFirebase = async function() {
     if(confirm("Se déconnecter ?")) { await signOut(auth); window.location.reload(); }
 };
 
-window.resetPassword = async function() {
-    const email = document.getElementById('login-email').value;
-    if(email) {
-        try { await sendPasswordResetEmail(auth, email); alert("Email envoyé !"); } 
-        catch(e) { alert("Erreur : " + e.message); }
-    } else { alert("Entrez votre email d'abord."); }
-};
-
-// 3. NAVIGATION & UI
+// Navigation
 window.showSection = function(sectionId) {
     ['home', 'admin', 'base', 'stock'].forEach(id => {
         const el = document.getElementById('view-' + id);
@@ -108,14 +103,25 @@ window.switchAdminTab = function(tabName) {
     document.getElementById('tab-btn-' + tabName).classList.add('active');
 };
 
-// Logique Formulaire Admin
 window.toggleSections = function() {
     const type = document.getElementById('prestation').value;
     document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden'));
+    document.getElementById('btn_inhumation').classList.add('hidden');
+    document.getElementById('btn_cremation').classList.add('hidden');
+    document.getElementById('btn_rapatriement').classList.add('hidden');
     
-    if(type === 'Inhumation') document.getElementById('bloc_inhumation').classList.remove('hidden');
-    if(type === 'Crémation') document.getElementById('bloc_cremation').classList.remove('hidden');
-    if(type === 'Rapatriement') document.getElementById('bloc_rapatriement').classList.remove('hidden');
+    if(type === 'Inhumation') {
+        document.getElementById('bloc_inhumation').classList.remove('hidden');
+        document.getElementById('btn_inhumation').classList.remove('hidden');
+    }
+    if(type === 'Crémation') {
+        document.getElementById('bloc_cremation').classList.remove('hidden');
+        document.getElementById('btn_cremation').classList.remove('hidden');
+    }
+    if(type === 'Rapatriement') {
+        document.getElementById('bloc_rapatriement').classList.remove('hidden');
+        document.getElementById('btn_rapatriement').classList.remove('hidden');
+    }
 };
 
 window.togglePolice = function() {
@@ -138,24 +144,14 @@ window.copierMandant = function() {
     }
 };
 
-window.openAjoutStock = function() {
-    document.getElementById('form-stock').classList.remove('hidden');
-    document.getElementById('st_nom').value = "";
-    document.getElementById('st_qte').value = "1";
-};
-
 window.viderFormulaire = function() {
     if(confirm("Tout effacer pour un nouveau dossier ?")) ouvrirDossier(null);
 };
 
-// Fonction Ouvrir Dossier (Nouveau ou Existant)
-// Note: Pour l'instant, l'édition complète nécessite de lier `chargerDossier` dans client_manager.js
-// Ici on fait le reset basique pour "Nouveau".
 function ouvrirDossier(id = null) {
     document.getElementById('dossier_id').value = id || "";
     
     if(!id) {
-        // Reset inputs
         document.querySelectorAll('#view-admin input').forEach(i => i.value = "");
         document.getElementById('prestation').selectedIndex = 0;
         document.getElementById('faita').value = "PERPIGNAN";
@@ -167,8 +163,12 @@ function ouvrirDossier(id = null) {
     window.showSection('admin');
 }
 
-// Menu Mobile
+// Menu Mobile (LA FONCTION QUE VOTRE BOUTON CHERCHAIT)
 window.toggleSidebar = function() {
     const sidebar = document.querySelector('.sidebar');
-    if(sidebar) sidebar.classList.toggle('mobile-open');
+    const overlay = document.getElementById('mobile-overlay');
+    if(sidebar) {
+        sidebar.classList.toggle('mobile-open');
+        if(overlay) overlay.style.display = sidebar.classList.contains('mobile-open') ? 'block' : 'none';
+    }
 };
