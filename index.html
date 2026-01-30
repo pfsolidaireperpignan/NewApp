@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERP - Administration</title>
+    <title>PF ERP - Administration</title>
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -26,12 +26,9 @@
         <div class="card" style="width:100%; max-width:400px; text-align:center; padding:40px;">
             <img src="Logo.png" alt="Logo" style="width:100px; margin-bottom:20px;">
             <h2 style="margin-bottom:10px;">PF SOLIDAIRE</h2>
-            <p style="color:#64748b; margin-bottom:30px;">Gestion Administrative & Stock</p>
             <input type="email" id="login-email" placeholder="Email" style="margin-bottom:15px; width:100%;">
             <input type="password" id="login-password" placeholder="Mot de passe" style="margin-bottom:25px; width:100%;">
-            <button onclick="window.loginFirebase()" class="btn btn-green" style="width:100%; justify-content:center;">SE CONNECTER</button>
-            <br><br>
-            <a href="#" onclick="window.resetPassword()" style="color:#3b82f6; font-size:0.9rem;">Mot de passe oublié ?</a>
+            <button onclick="window.loginFirebase()" class="btn btn-green" style="width:100%;">SE CONNECTER</button>
         </div>
     </div>
 
@@ -50,35 +47,32 @@
         </ul>
     </nav>
 
-    <main class="main-content hidden" id="main-content"> <div id="view-home">
+    <main class="main-content hidden" id="main-content">
+        
+        <div id="view-home">
             <div class="page-header">
                 <h1>Tableau de Bord</h1>
                 <div class="card" style="padding:10px 20px; display:flex; gap:20px; align-items:center; margin:0;">
-                    <div id="header-time" style="font-weight:bold; font-size:1.2rem;">--:--</div>
-                    <div id="header-date" style="color:#64748b; font-size:0.9rem;">Chargement...</div>
+                    <div id="header-time" style="font-weight:bold;">--:--</div>
+                    <div id="header-date" style="color:#64748b;">Chargement...</div>
                 </div>
             </div>
-            
             <div class="dashboard-grid">
                 <div class="action-card ac-blue" onclick="window.showSection('admin')">
                     <div class="card-icon-bg"><i class="fas fa-plus"></i></div>
                     <h3>Nouveau Dossier</h3>
-                    <p style="color:#64748b; font-size:0.9rem;">Créer inhumation, crémation...</p>
                 </div>
                 <div class="action-card ac-orange" onclick="window.showSection('base')">
                     <div class="card-icon-bg"><i class="fas fa-users"></i></div>
                     <h3>Base Clients</h3>
-                    <p style="color:#64748b; font-size:0.9rem;">Retrouver un dossier existant.</p>
                 </div>
                 <div class="action-card ac-green" onclick="window.showSection('stock')">
                     <div class="card-icon-bg"><i class="fas fa-boxes"></i></div>
                     <h3>Gestion Stock</h3>
-                    <p style="color:#64748b; font-size:0.9rem;">Entrées et sorties matériel.</p>
                 </div>
                 <div class="action-card ac-purple" onclick="location.href='facturation_v2.html'">
                     <div class="card-icon-bg"><i class="fas fa-file-invoice"></i></div>
                     <h3>Facturation</h3>
-                    <p style="color:#64748b; font-size:0.9rem;">Devis et Factures.</p>
                 </div>
             </div>
         </div>
@@ -93,7 +87,6 @@
             </div>
 
             <div class="form-grid" style="grid-template-columns: 2fr 1fr; align-items:start;">
-                
                 <div>
                     <div class="tabs-container">
                         <button class="tab-btn active" id="tab-btn-identite" onclick="window.switchAdminTab('identite')">1. IDENTITÉ</button>
@@ -102,9 +95,8 @@
 
                     <div id="tab-content-identite">
                         <input type="hidden" id="dossier_id">
-                        
                         <div class="card">
-                            <h3>MANDANT (CLIENT)</h3>
+                            <h3>MANDANT</h3>
                             <div class="form-grid">
                                 <div class="span-2" style="display:flex; gap:10px;">
                                     <select id="civilite_mandant" style="width:80px;"><option>M.</option><option>Mme</option></select>
@@ -114,7 +106,6 @@
                                 <div class="span-2"><label>Adresse</label><input id="demeurant" list="villes_list"></div>
                             </div>
                         </div>
-
                         <div class="card">
                             <h3>DÉFUNT</h3>
                             <div class="form-grid">
@@ -130,18 +121,9 @@
                                 <div><label>Lieu Naissance</label><input id="lieu_naiss" list="villes_list"></div>
                                 <div class="span-2"><label>Domicile</label><input id="adresse_fr" list="villes_list"></div>
                                 <div><label>Nationalité</label><input id="nationalite" value="Française"></div>
-                                <div><label>Profession</label>
-                                    <select id="prof_type">
-                                        <option value="Retraité(e)">Retraité(e)</option>
-                                        <option value="Sans profession">Sans profession</option>
-                                        <option value="Active">Active</option>
-                                    </select>
-                                </div>
+                                <div><label>Profession</label><select id="prof_type"><option>Retraité(e)</option><option>Sans profession</option><option>Active</option></select></div>
                                 <div class="span-2"><label>Si Active (Libellé)</label><input id="profession_libelle"></div>
-                                
-                                <div class="span-2" style="border-top:1px solid #e2e8f0; margin-top:10px; padding-top:10px;">
-                                    <label>Filiation & Situation</label>
-                                </div>
+                                <div class="span-2" style="border-top:1px solid #e2e8f0; margin-top:10px; padding-top:10px;"><label>Filiation & Situation</label></div>
                                 <div><label>Père</label><input id="pere"></div>
                                 <div><label>Mère</label><input id="mere"></div>
                                 <div><label>Situation</label><select id="matrimoniale"><option>Marié(e)</option><option>Veuf(ve)</option><option>Célibataire</option><option>Divorcé(e)</option></select></div>
@@ -160,19 +142,12 @@
                                 <option value="Exhumation">⛏️ EXHUMATION</option>
                             </select>
                         </div>
-
                         <div class="card">
                             <h3>LOGISTIQUE</h3>
                             <div class="form-grid">
                                 <div><label>Mise en Bière (Lieu)</label><input id="lieu_mise_biere" list="villes_list"></div>
                                 <div><label>Date Fermeture</label><input type="date" id="date_fermeture"></div>
-                                <div class="span-2"><label>Type Présence</label>
-                                    <select id="type_presence_select" onchange="window.togglePolice()">
-                                        <option value="famille">Famille</option>
-                                        <option value="police">Police</option>
-                                    </select>
-                                </div>
-                                
+                                <div class="span-2"><label>Type Présence</label><select id="type_presence_select" onchange="window.togglePolice()"><option value="famille">Famille</option><option value="police">Police</option></select></div>
                                 <div id="police_fields" class="span-2 form-grid hidden" style="background:#fee2e2; padding:10px; border-radius:8px;">
                                     <div><label>Nom & Grade</label><input id="p_nom_grade"></div>
                                     <div><label>Commissariat</label><input id="p_commissariat"></div>
@@ -182,7 +157,6 @@
                                     <div><label>Nom Témoin</label><input id="f_nom_prenom"></div>
                                     <div><label>Lien</label><input id="f_lien" list="liens_list"></div>
                                 </div>
-
                                 <div class="span-2" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px;">
                                     <label style="font-weight:bold;">Transport AVANT Mise en Bière</label>
                                     <div class="form-grid">
@@ -194,7 +168,6 @@
                                         <div><label>Heure Arr.</label><input type="time" id="av_heure_arr"></div>
                                     </div>
                                 </div>
-
                                 <div class="span-2" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px;">
                                     <label style="font-weight:bold;">Transport APRÈS Mise en Bière</label>
                                     <div class="form-grid">
@@ -206,12 +179,10 @@
                                         <div><label>Heure Arr.</label><input type="time" id="ap_heure_arr"></div>
                                     </div>
                                 </div>
-
                                 <div><label>Fait à</label><input id="faita" value="PERPIGNAN"></div>
                                 <div><label>Date Signature</label><input type="date" id="dateSignature"></div>
                             </div>
                         </div>
-
                         <div id="bloc_inhumation" class="card specific-block">
                             <h3>INHUMATION</h3>
                             <div class="form-grid">
@@ -223,7 +194,6 @@
                                 <div><label>Heure</label><input type="time" id="heure_inhumation"></div>
                             </div>
                         </div>
-
                         <div id="bloc_cremation" class="card specific-block hidden">
                             <h3>CRÉMATION</h3>
                             <div class="form-grid">
@@ -233,7 +203,6 @@
                                 <div><label>Cendres</label><input id="destination_cendres"></div>
                             </div>
                         </div>
-
                         <div id="bloc_rapatriement" class="card specific-block hidden">
                             <h3>RAPATRIEMENT</h3>
                             <div class="form-grid">
@@ -260,7 +229,6 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
@@ -281,7 +249,6 @@
                         <button class="btn btn-blue" onclick="window.genererDemandeOuverture()">Ouverture Sépulture</button>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -330,13 +297,11 @@
 
     </main>
 
-  <button id="mobile-menu-btn" onclick="window.toggleSidebar()">
-    <i class="fas fa-bars"></i>
-</button>
-
-<div id="mobile-overlay" onclick="window.toggleSidebar()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:4000;"></div>
+    <button id="mobile-menu-btn" onclick="window.toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div id="mobile-overlay" onclick="window.toggleSidebar()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:4000;"></div>
 
     <script type="module" src="script.js"></script>
 </body>
 </html>
-
