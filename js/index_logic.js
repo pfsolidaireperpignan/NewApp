@@ -81,4 +81,5 @@ onAuthStateChanged(auth, (user) => {
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
     }
+
 });
