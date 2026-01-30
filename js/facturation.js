@@ -1,23 +1,21 @@
-/* js/facturation.js - Logique extraite et nettoyée */
+/* js/facturation.js - Logique Facturation (Extracted) */
 import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, getDoc, auth } from "./config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-// On utilise le logo partagé
 import { logoBase64, chargerLogoBase64 } from "./utils.js"; 
 
 // --- SÉCURITÉ ---
 onAuthStateChanged(auth, (user) => {
     if (!user) window.location.href = "index.html";
     else {
-        // Chargement initial
         chargerLogoBase64();
         window.chargerListeFactures();
         window.chargerDepenses();
         chargerSuggestionsClients();
-        document.getElementById('dep_date_fac').valueAsDate = new Date();
+        if(document.getElementById('dep_date_fac')) document.getElementById('dep_date_fac').valueAsDate = new Date();
     }
 });
 
-// --- VARIABLES ---
+// --- VARIABLES GLOBALES ---
 let paiements = [];
 let cacheDepenses = [];
 let global_CA = 0;
@@ -25,16 +23,15 @@ let global_Depenses = 0;
 const currentYear = new Date().getFullYear();
 let currentSort = { col: 'date', order: 'desc' };
 
-// --- PDF ENGINE (COULEURS VERTES RÉTABLIES) ---
+// --- PDF ENGINE (AVEC LA COULEUR VERTE CORRIGÉE) ---
 window.generatePDFFromData = function(data, saveMode = false) {
     if(!logoBase64) chargerLogoBase64();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Logo & Header
     if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 25, 25); } catch(e){} }
     
-    // COULEUR VERT SOLIDAIRE [34, 155, 76]
+    // !!! ICI LA COULEUR VERTE RESTAURÉE !!!
     const greenColor = [34, 155, 76]; 
     
     doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...greenColor);
@@ -42,14 +39,12 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80);
     doc.text("32 boulevard Léon Jean Grégory Thuir", 15, 50); doc.text("Tél : 07.55.18.27.77", 15, 54);
 
-    // Client
     doc.setFillColor(245, 245, 245); doc.roundedRect(110, 10, 85, 30, 2, 2, 'F');
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","bold");
     doc.text(`${data.client.civility || ''} ${data.client.nom || ''}`, 115, 18);
     doc.setFont("helvetica","normal"); doc.setFontSize(9);
     doc.text(doc.splitTextToSize(data.client.adresse || "", 80), 115, 24);
 
-    // Titres
     let y = 65; doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(...greenColor);
     const typeDoc = data.info.type || "DOCUMENT";
     const numDoc = data.info.numero || "";
@@ -62,7 +57,6 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text(`DÉFUNT : ${data.defunt.civility || ''} ${data.defunt.nom || ''}`, 130, y); 
     y += 8;
 
-    // Tableau
     const rows = [];
     if(data.lignes) {
         data.lignes.forEach(l => {
@@ -88,7 +82,6 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const finalY = doc.lastAutoTable.finalY + 5;
     let curY = finalY;
 
-    // Totaux
     const total = parseFloat(data.info.total) || 0;
     const dejaRegle = data.paiements ? data.paiements.reduce((sum, p) => sum + p.montant, 0) : 0;
     const reste = total - dejaRegle;
@@ -118,15 +111,16 @@ window.generatePDFFromData = function(data, saveMode = false) {
     if (saveMode) { doc.save(`${typeDoc}_${numDoc}.pdf`); } else { window.open(doc.output('bloburl'), '_blank'); }
 };
 
-// --- LOGIQUE UI ---
+// --- NAVIGATION UI ---
 window.switchTab = function(tab) {
     document.getElementById('tab-factures').classList.add('hidden');
     document.getElementById('tab-achats').classList.add('hidden');
     document.getElementById('btn-tab-factures').classList.remove('active');
     document.getElementById('btn-tab-achats').classList.remove('active');
+    document.getElementById('btn-tab-achats').classList.remove('active-red');
     
     if(tab === 'factures') { document.getElementById('tab-factures').classList.remove('hidden'); document.getElementById('btn-tab-factures').classList.add('active'); }
-    else { document.getElementById('tab-achats').classList.remove('hidden'); document.getElementById('btn-tab-achats').classList.add('active'); window.chargerDepenses(); }
+    else { document.getElementById('tab-achats').classList.remove('hidden'); document.getElementById('btn-tab-achats').classList.add('active-red'); window.chargerDepenses(); }
 };
 
 window.showDashboard = function() {
@@ -142,10 +136,11 @@ window.nouveauDocument = function() {
     document.getElementById('defunt_nom').value = ""; document.getElementById('doc_date').valueAsDate = new Date();
     document.getElementById('doc_type').value = "DEVIS"; document.getElementById('tbody_lignes').innerHTML = "";
     paiements = []; window.renderPaiements(); window.calculTotal();
+    document.getElementById('btn-transform').classList.add('hidden');
     document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-editor').classList.remove('hidden');
 };
 
-// --- CRUD FACTURES ---
+// --- LOGIQUE FACTURES ---
 window.chargerListeFactures = async function() {
     const tbody = document.getElementById('list-body'); tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Chargement...</td></tr>';
     try {
@@ -161,23 +156,28 @@ window.chargerListeFactures = async function() {
             const typeDoc = data.info?.type || 'DEVIS'; 
             if (typeDoc === "FACTURE" && dateDoc.getFullYear() === currentYear) { global_CA += totalDoc; } 
             
+            const typeClass = (typeDoc === "FACTURE") ? "badge-facture" : "badge-devis";
+            const nomClient = (data.client?.civility||"") + " " + (data.client?.nom || '-');
+            const numDoc = data.info?.numero || '-';
+            const linkClient = `index.html?recherche=${encodeURIComponent(data.client?.nom || '')}`;
+            
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="link-doc" onclick="window.chargerDocument('${docSnap.id}')"><strong>${data.info?.numero || '-'}</strong></td>
+                <td class="link-doc" onclick="window.chargerDocument('${docSnap.id}')" title="Modifier/Imprimer"><strong>${numDoc}</strong></td>
                 <td>${dateDoc.toLocaleDateString()}</td>
-                <td><span class="badge ${typeDoc === "FACTURE" ? "badge-facture" : "badge-devis"}">${typeDoc}</span></td>
-                <td><strong>${data.client?.nom || '-'}</strong></td>
+                <td><span class="badge ${typeClass}">${typeDoc}</span></td>
+                <td class="link-client" onclick="window.location.href='${linkClient}'" title="Voir Dossier Client"><strong>${nomClient}</strong></td>
                 <td>${data.defunt?.nom || '-'}</td>
-                <td style="text-align:right;">${totalDoc.toFixed(2)} €</td>
-                <td style="text-align:right; color:${reste > 0 ? '#b91c1c' : '#15803d'}; font-weight:bold;">${reste.toFixed(2)} €</td>
-                <td style="text-align:center;">
-                    <button class="btn-icon" onclick="window.visualiserPDF('${docSnap.id}')"><i class="fas fa-eye"></i></button>
-                    <button class="btn-icon" onclick="window.supprimerDocument('${docSnap.id}')" style="color:red;"><i class="fas fa-trash"></i></button>
+                <td style="text-align:right; font-weight:bold;">${totalDoc.toFixed(2)} €</td>
+                <td style="text-align:right; font-weight:bold; color:${reste > 0 ? '#b91c1c' : '#15803d'};">${reste.toFixed(2)} €</td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button class="btn-icon" style="color:#3b82f6; border:none; background:none; cursor:pointer; font-size:1.1rem; margin-right:10px;" onclick="window.visualiserPDF('${docSnap.id}')" title="Visualiser PDF"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" style="color:#ef4444; border:none; background:none; cursor:pointer; font-size:1.1rem;" onclick="window.supprimerDocument('${docSnap.id}')" title="Supprimer"><i class="fas fa-trash"></i></button>
                 </td>`;
             tbody.appendChild(tr);
         });
-        updateStats();
-    } catch(e) { console.error(e); }
+        window.chargerDepenses();
+    } catch(e) { console.error(e); tbody.innerHTML = `<tr><td colspan="8" style="color:red;">Erreur : ${e.message}</td></tr>`; }
 };
 
 window.chargerDocument = async (id) => { 
@@ -194,13 +194,14 @@ window.chargerDocument = async (id) => {
         document.getElementById('tbody_lignes').innerHTML = "";
         data.lignes.forEach(l => { if(l.type==='section') window.ajouterSection(l.text); else window.ajouterLigne(l.desc, l.prix, l.cat); });
         paiements = data.paiements || []; window.renderPaiements(); window.calculTotal();
+        document.getElementById('btn-transform').classList.toggle('hidden', data.info.type !== 'DEVIS');
         document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-editor').classList.remove('hidden');
     }
 };
 
 window.ajouterLigne = function(desc="", prix=0, type="Courant") {
     const tr = document.createElement('tr'); tr.className = "row-item";
-    tr.innerHTML = `<td class="drag-handle"><i class="fas fa-grip-lines"></i></td><td><input type="text" class="input-cell val-desc" value="${desc}"></td><td><select class="input-cell val-type"><option value="Courant" ${type==='Courant'?'selected':''}>Courant</option><option value="Optionnel" ${type==='Optionnel'?'selected':''}>Optionnel</option></select></td><td style="text-align:right;"><input type="number" class="input-cell val-prix" value="${prix}" oninput="window.calculTotal()"></td><td style="text-align:center;"><i class="fas fa-trash" style="color:red; cursor:pointer;" onclick="this.closest('tr').remove(); window.calculTotal();"></i></td>`;
+    tr.innerHTML = `<td class="drag-handle"><i class="fas fa-grip-lines"></i></td><td><input type="text" class="input-cell val-desc" value="${desc}"></td><td><select class="input-cell val-type" style="border:none;"><option value="Courant" ${type==='Courant'?'selected':''}>Courant</option><option value="Optionnel" ${type==='Optionnel'?'selected':''}>Optionnel</option><option value="Avance" ${type==='Avance'?'selected':''}>Avance</option></select></td><td>NA</td><td><input type="number" class="input-cell price-cell val-prix" value="${prix}" oninput="window.calculTotal()"></td><td style="text-align:center;"><i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="this.closest('tr').remove(); window.calculTotal();"></i></td>`;
     document.getElementById('tbody_lignes').appendChild(tr); window.calculTotal();
 };
 window.ajouterSection = function(titre="NOUVELLE SECTION") { const tr = document.createElement('tr'); tr.className = "row-section"; tr.innerHTML = `<td class="drag-handle"><i class="fas fa-grip-vertical"></i></td><td colspan="4"><input type="text" class="input-cell input-section" value="${titre}"></td><td style="text-align:center;"><i class="fas fa-trash" style="color:#ef4444; cursor:pointer;" onclick="this.closest('tr').remove(); window.calculTotal();"></i></td>`; document.getElementById('tbody_lignes').appendChild(tr); };
@@ -231,26 +232,26 @@ window.sauvegarderDocument = async function() {
         if(id) await updateDoc(doc(db, "factures_v2", id), docData);
         else { 
             const q = query(collection(db, "factures_v2")); const snap = await getDocs(q);
-            docData.info.numero = (docData.info.type === 'DEVIS' ? 'D' : 'F') + '-' + currentYear + '-' + String(snap.size + 1).padStart(3, '0');
+            const count = snap.size + 1; const year = new Date().getFullYear(); const prefix = (docData.info.type === 'DEVIS') ? 'D' : 'F';
+            docData.info.numero = `${prefix}-${year}-${String(count).padStart(3, '0')}`;
             await addDoc(collection(db, "factures_v2"), docData);
         }
         alert("✅ Enregistré !"); window.showDashboard();
     } catch(e) { alert("Erreur : " + e.message); }
 };
 
-// --- PAIEMENTS ---
 window.ajouterPaiement = () => { const p = { date: document.getElementById('pay_date').value, mode: document.getElementById('pay_mode').value, montant: parseFloat(document.getElementById('pay_amount').value) }; if(p.montant > 0) { paiements.push(p); window.renderPaiements(); window.calculTotal(); } };
 window.supprimerPaiement = (index) => { paiements.splice(index, 1); window.renderPaiements(); window.calculTotal(); };
 window.renderPaiements = () => { const div = document.getElementById('liste_paiements'); div.innerHTML = ""; paiements.forEach((p, i) => { div.innerHTML += `<div>${p.date} - ${p.mode}: <strong>${p.montant}€</strong> <i class="fas fa-trash" style="color:red;cursor:pointer;" onclick="window.supprimerPaiement(${i})"></i></div>`; }); };
 
-// --- ACHATS ---
+// --- ACHATS & STATS ---
 window.chargerDepenses = async function() {
     const tbody = document.getElementById('depenses-body');
     try {
         const q = query(collection(db, "depenses"), orderBy("date", "desc")); const snap = await getDocs(q);
         cacheDepenses = []; global_Depenses = 0;
         snap.forEach(docSnap => { const data = docSnap.data(); data.id = docSnap.id; cacheDepenses.push(data); if(new Date(data.date).getFullYear() === currentYear && data.statut === 'Réglé') global_Depenses += (data.montant || 0); });
-        updateStats(); window.filtrerDepenses();
+        updateFinancialDashboard(); window.filtrerDepenses();
     } catch(e) { console.error(e); }
 };
 window.filtrerDepenses = function() {
@@ -262,13 +263,37 @@ window.filtrerDepenses = function() {
         tbody.appendChild(tr);
     });
 };
-window.gererDepense = async function() { /* Identique votre code original, géré par le module */ }; 
+window.gererDepense = async function() { 
+    const id = document.getElementById('dep_edit_id').value;
+    const data = { date: document.getElementById('dep_date_fac').value, reference: document.getElementById('dep_ref').value, fournisseur: document.getElementById('dep_fourn').value, details: document.getElementById('dep_details').value, categorie: document.getElementById('dep_cat').value, mode: document.getElementById('dep_mode').value, statut: document.getElementById('dep_statut').value, montant: parseFloat(document.getElementById('dep_montant').value) || 0, date_reglement: document.getElementById('dep_date_reg').value };
+    if(!data.date || !data.fournisseur) return alert("Champs obligatoires manquants.");
+    try { if(id) await updateDoc(doc(db, "depenses", id), data); else { data.date_ajout = new Date().toISOString(); await addDoc(collection(db, "depenses"), data); } window.resetFormDepense(); window.chargerDepenses(); } catch(e){alert(e.message);}
+};
+window.resetFormDepense = function() { document.getElementById('dep_edit_id').value = ""; document.getElementById('form-depense').reset(); document.getElementById('btn-action-depense').innerHTML="SAUVER"; document.getElementById('btn-cancel-depense').classList.add('hidden'); };
+window.preparerModification = function(id) { 
+    const d = cacheDepenses.find(x=>x.id===id); if(d) { 
+        document.getElementById('dep_edit_id').value=id; document.getElementById('dep_date_fac').value=d.date; document.getElementById('dep_ref').value=d.reference; document.getElementById('dep_fourn').value=d.fournisseur; document.getElementById('dep_montant').value=d.montant; document.getElementById('dep_cat').value=d.categorie; 
+        document.getElementById('btn-action-depense').innerHTML="MODIFIER"; document.getElementById('btn-cancel-depense').classList.remove('hidden');
+    } 
+};
 window.supprimerDepense = async (id) => { if(confirm("Supprimer ?")) { await deleteDoc(doc(db,"depenses",id)); window.chargerDepenses(); } };
 window.supprimerDocument = async (id) => { if(confirm("Supprimer ?")) { await deleteDoc(doc(db,"factures_v2",id)); window.chargerListeFactures(); } };
 window.visualiserPDF = async (id) => { const d = await getDoc(doc(db,"factures_v2",id)); if(d.exists()) window.generatePDFFromData(d.data()); };
 
-function updateStats() { document.getElementById('stat-ca').innerText = global_CA.toFixed(2) + " €"; document.getElementById('stat-depenses').innerText = global_Depenses.toFixed(2) + " €"; const res = global_CA - global_Depenses; const el = document.getElementById('stat-resultat'); el.innerText = res.toFixed(2) + " €"; el.style.color = res >= 0 ? '#1e40af' : '#b91c1c'; }
+function updateFinancialDashboard() {
+    document.getElementById('stat-ca').innerText = global_CA.toFixed(2) + " €";
+    document.getElementById('stat-depenses').innerText = global_Depenses.toFixed(2) + " €";
+    const res = global_CA - global_Depenses;
+    const el = document.getElementById('stat-resultat');
+    el.innerText = res.toFixed(2) + " €";
+    el.style.color = res >= 0 ? '#1e40af' : '#b91c1c';
+}
 async function chargerSuggestionsClients() { try { const q = query(collection(db, "dossiers_admin"), orderBy("date_creation", "desc")); const snap = await getDocs(q); const dl = document.getElementById('clients_suggestions'); dl.innerHTML = ""; snap.forEach(doc => { if(doc.data().mandant?.nom) dl.innerHTML += `<option value="${doc.data().mandant.nom}">`; }); } catch(e){} }
 
 // PDF Button Binding
 window.imprimerDocumentActuel = function() { document.getElementById('btn-pdf').click(); };
+window.toggleSidebar = function() {
+    const sb = document.querySelector('.sidebar');
+    if(window.innerWidth < 768) { sb.classList.toggle('mobile-open'); document.getElementById('mobile-overlay').style.display = sb.classList.contains('mobile-open') ? 'block' : 'none'; } else { sb.classList.toggle('collapsed'); }
+};
+window.trierTableau = function(col) { if (currentSort.col === col) { currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc'; } else { currentSort.col = col; currentSort.order = 'asc'; } window.filtrerDepenses(); };
