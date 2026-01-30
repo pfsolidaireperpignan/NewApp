@@ -1,4 +1,4 @@
-/* js/facturation.js - Logique Facturation (Extracted) */
+/* js/facturation.js - Logique Facturation (Cleaned) */
 import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, getDoc, auth } from "./config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { logoBase64, chargerLogoBase64 } from "./utils.js"; 
@@ -15,7 +15,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- VARIABLES GLOBALES ---
+// --- VARIABLES ---
 let paiements = [];
 let cacheDepenses = [];
 let global_CA = 0;
@@ -23,15 +23,16 @@ let global_Depenses = 0;
 const currentYear = new Date().getFullYear();
 let currentSort = { col: 'date', order: 'desc' };
 
-// --- PDF ENGINE (AVEC LA COULEUR VERTE CORRIGÉE) ---
+// --- PDF ENGINE (VOTRE VERSION ORIGINALE VERTE) ---
 window.generatePDFFromData = function(data, saveMode = false) {
     if(!logoBase64) chargerLogoBase64();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
+    // 1. Logo & Header
     if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 25, 25); } catch(e){} }
     
-    // !!! ICI LA COULEUR VERTE RESTAURÉE !!!
+    // COULEUR VERT SOLIDAIRE [34, 155, 76]
     const greenColor = [34, 155, 76]; 
     
     doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...greenColor);
@@ -39,12 +40,14 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80);
     doc.text("32 boulevard Léon Jean Grégory Thuir", 15, 50); doc.text("Tél : 07.55.18.27.77", 15, 54);
 
+    // Client
     doc.setFillColor(245, 245, 245); doc.roundedRect(110, 10, 85, 30, 2, 2, 'F');
     doc.setFontSize(10); doc.setTextColor(0); doc.setFont("helvetica","bold");
     doc.text(`${data.client.civility || ''} ${data.client.nom || ''}`, 115, 18);
     doc.setFont("helvetica","normal"); doc.setFontSize(9);
     doc.text(doc.splitTextToSize(data.client.adresse || "", 80), 115, 24);
 
+    // Titres
     let y = 65; doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(...greenColor);
     const typeDoc = data.info.type || "DOCUMENT";
     const numDoc = data.info.numero || "";
@@ -57,6 +60,7 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text(`DÉFUNT : ${data.defunt.civility || ''} ${data.defunt.nom || ''}`, 130, y); 
     y += 8;
 
+    // Tableau
     const rows = [];
     if(data.lignes) {
         data.lignes.forEach(l => {
@@ -82,8 +86,10 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const finalY = doc.lastAutoTable.finalY + 5;
     let curY = finalY;
 
+    // Totaux
     const total = parseFloat(data.info.total) || 0;
-    const dejaRegle = data.paiements ? data.paiements.reduce((sum, p) => sum + p.montant, 0) : 0;
+    // Note : paiements est une variable globale dans le module, il faut l'utiliser depuis l'objet data si passé, ou globale
+    const dejaRegle = (data.paiements) ? data.paiements.reduce((sum, p) => sum + p.montant, 0) : 0;
     const reste = total - dejaRegle;
 
     doc.setFontSize(9); doc.setTextColor(0); doc.setFont("helvetica", "bold");
@@ -108,6 +114,26 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text("RESTE À PAYER :", 140, yReste + 2); 
     doc.text(reste.toFixed(2) + " €", 193, yReste + 2, {align:'right'});
 
+    // Bas de page (RIB ou Signature)
+    if (typeDoc === 'FACTURE') {
+        if (curY + 45 > 280) { doc.addPage(); curY = 20; }
+        doc.setDrawColor(200); doc.setFillColor(250, 250, 250);
+        doc.rect(15, curY, 115, 38, 'FD'); 
+        doc.setFontSize(9); doc.setTextColor(...greenColor); doc.setFont("helvetica", "bold");
+        doc.text(`Somme de ${reste.toFixed(2)} € à payer dès réception.`, 18, curY + 6);
+        doc.setTextColor(0); doc.setFontSize(8);
+        doc.text("Banque : BANQUE POPULAIRE DU SUD", 18, curY + 19);
+        doc.text("IBAN : FR76 1660 7000 0738 2217 4454 393", 18, curY + 29);
+        doc.text("BIC : CCBPFRPPPPG", 18, curY + 34);
+    } else {
+         if (curY + 45 > 285) { doc.addPage(); curY = 20; }
+         let ySig = Math.max(curY, yReste + 10) + 5; 
+         doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, ySig, 180, 35);
+         doc.setFontSize(9); doc.setTextColor(0); doc.setFont("helvetica", "normal");
+         doc.text("Bon pour accord, le ......................... à .........................", 20, ySig + 8); 
+         doc.text("Signature du client :", 20, ySig + 20);
+    }
+
     if (saveMode) { doc.save(`${typeDoc}_${numDoc}.pdf`); } else { window.open(doc.output('bloburl'), '_blank'); }
 };
 
@@ -117,10 +143,9 @@ window.switchTab = function(tab) {
     document.getElementById('tab-achats').classList.add('hidden');
     document.getElementById('btn-tab-factures').classList.remove('active');
     document.getElementById('btn-tab-achats').classList.remove('active');
-    document.getElementById('btn-tab-achats').classList.remove('active-red');
     
     if(tab === 'factures') { document.getElementById('tab-factures').classList.remove('hidden'); document.getElementById('btn-tab-factures').classList.add('active'); }
-    else { document.getElementById('tab-achats').classList.remove('hidden'); document.getElementById('btn-tab-achats').classList.add('active-red'); window.chargerDepenses(); }
+    else { document.getElementById('tab-achats').classList.remove('hidden'); document.getElementById('btn-tab-achats').classList.add('active'); window.chargerDepenses(); }
 };
 
 window.showDashboard = function() {
@@ -169,7 +194,7 @@ window.chargerListeFactures = async function() {
                 <td class="link-client" onclick="window.location.href='${linkClient}'" title="Voir Dossier Client"><strong>${nomClient}</strong></td>
                 <td>${data.defunt?.nom || '-'}</td>
                 <td style="text-align:right; font-weight:bold;">${totalDoc.toFixed(2)} €</td>
-                <td style="text-align:right; font-weight:bold; color:${reste > 0 ? '#b91c1c' : '#15803d'};">${reste.toFixed(2)} €</td>
+                <td style="text-align:right; font-weight:bold; color:${reste > 0.1 ? '#b91c1c' : '#15803d'};">${reste.toFixed(2)} €</td>
                 <td style="text-align:center; white-space:nowrap;">
                     <button class="btn-icon" style="color:#3b82f6; border:none; background:none; cursor:pointer; font-size:1.1rem; margin-right:10px;" onclick="window.visualiserPDF('${docSnap.id}')" title="Visualiser PDF"><i class="fas fa-eye"></i></button>
                     <button class="btn-icon" style="color:#ef4444; border:none; background:none; cursor:pointer; font-size:1.1rem;" onclick="window.supprimerDocument('${docSnap.id}')" title="Supprimer"><i class="fas fa-trash"></i></button>
