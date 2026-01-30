@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PFS ERP </title>
+    <title>PF ERP - Administration</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
@@ -24,12 +25,12 @@
     </div>
 
     <div id="login-screen" class="hidden" style="position:fixed; inset:0; z-index:9000; display:flex; justify-content:center; align-items:center; background:#f1f5f9;">
-        <div class="card" style="width:100%; max-width:400px; text-align:center; padding:50px; background:white; border-radius:10px;">
+        <div class="card" style="width:100%; max-width:400px; text-align:center; padding:50px; background:white; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.1);">
             <img src="Logo.png" alt="Logo" style="width:120px; margin-bottom:20px;">
             <h2 style="margin-bottom:10px; color:#1e293b;">PF SOLIDAIRE</h2>
-            <input type="email" id="login-email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:15px;">
-            <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%; padding:10px; margin-bottom:25px;">
-            <button id="btn-login" class="btn btn-green" style="width:100%; padding:10px; cursor:pointer; background:#10b981; color:white; border:none; border-radius:5px;">SE CONNECTER</button>
+            <input type="email" id="login-email" placeholder="Email" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ccc; border-radius:5px;">
+            <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%; padding:12px; margin-bottom:25px; border:1px solid #ccc; border-radius:5px;">
+            <button onclick="window.loginFirebase()" class="btn btn-green" style="width:100%; padding:12px; cursor:pointer; background:#10b981; color:white; border:none; border-radius:5px; font-weight:bold;">SE CONNECTER</button>
         </div>
     </div>
 
@@ -47,14 +48,16 @@
             <li class="nav-item"><a onclick="window.showSection('stock')" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
             <li class="nav-item"><a href="facturation_v2.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
             <li class="nav-item"><a href="dossier_complet.html" class="nav-link" style="color:#ea580c;"><i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span></a></li>
-            <li class="nav-item" style="margin-top:auto;"><a id="btn-logout" class="nav-link" style="color:#ef4444;"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
+            <li class="nav-item" style="margin-top:auto;"><a onclick="window.logoutFirebase()" class="nav-link" style="color:#ef4444;"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
         </ul>
     </nav>
 
     <main class="main-content">
+        
         <div id="view-home">
             <div class="welcome-banner">
                 <div class="welcome-text"><h2>Bonjour</h2><p>Espace de gestion PF Solidaire.</p></div>
+                <div class="date-badge"><div id="header-time">--:--</div><div id="header-date">Chargement...</div></div>
             </div>
             <div class="dashboard-grid">
                 <div class="action-card ac-blue" onclick="window.showSection('admin')">
@@ -71,6 +74,7 @@
 
         <div id="view-stock" class="hidden">
             <div class="page-header"><h1>Stocks</h1><button class="btn btn-green" onclick="window.openAjoutStock()">AJOUTER</button></div>
+            
             <div id="form-stock" class="card hidden">
                 <h3>Ajouter Article</h3>
                 <div class="form-grid">
@@ -81,7 +85,8 @@
                 </div>
                 <button class="btn btn-green" onclick="window.ajouterArticleStock()">Valider</button>
             </div>
-            <div class="card"><table class="history-table"><thead><tr><th>Nom</th><th>Catégorie</th><th>Stock</th><th>Action</th></tr></thead><tbody id="stock-table-body"></tbody></table></div>
+
+            <div class="card"><table class="history-table"><thead><tr><th>Article</th><th>Catégorie</th><th>Stock</th><th>Action</th></tr></thead><tbody id="stock-table-body"></tbody></table></div>
         </div>
 
         <div id="view-base" class="hidden">
@@ -90,7 +95,7 @@
         </div>
 
         <div id="view-admin" class="hidden">
-            <div class="page-header"><h1>Dossier</h1><button class="btn btn-green" id="btn-save-bdd">ENREGISTRER</button></div>
+            <div class="page-header"><h1>Dossier</h1><button class="btn btn-green" id="btn-save-bdd" onclick="window.sauvegarderDossier()">ENREGISTRER</button></div>
             
             <div class="tabs-container">
                 <button class="tab-btn active" onclick="window.switchAdminTab('identite')" id="tab-btn-identite">1. IDENTITÉ</button>
@@ -107,6 +112,12 @@
                         <input type="date" id="date_deces"> <input id="lieu_deces" placeholder="Lieu Décès">
                         <input type="date" id="date_naiss"> <input id="lieu_naiss" placeholder="Lieu Naissance">
                         <input id="adresse_fr" placeholder="Domicile"> <input id="nationalite" value="Française">
+                        <input id="nom_jeune_fille" placeholder="Nom Jeune Fille">
+                        <input id="pere" placeholder="Père"> <input id="mere" placeholder="Mère">
+                        <select id="matrimoniale"><option>Marié(e)</option><option>Veuf(ve)</option><option>Célibataire</option></select>
+                        <input id="conjoint" placeholder="Conjoint">
+                        <select id="prof_type"><option>Retraité(e)</option><option>Active</option><option>Sans profession</option></select>
+                        <input id="profession_libelle" placeholder="Libellé profession">
                     </div>
                 </div>
                 <div class="card">
@@ -130,8 +141,44 @@
                         <select id="type_presence_select" onchange="window.togglePolice()"><option value="famille">Famille</option><option value="police">Police</option></select>
                         
                         <div id="police_fields" class="hidden"><input id="p_nom_grade" placeholder="Grade Police"><input id="p_commissariat" placeholder="Commissariat"></div>
-                        <div id="famille_fields"><input id="f_nom_prenom" placeholder="Témoin Famille"></div>
+                        <div id="famille_fields"><input id="f_nom_prenom" placeholder="Témoin Famille"><input id="f_lien" placeholder="Lien Témoin"></div>
+                        <input id="immatriculation" placeholder="Véhicule">
                     </div>
+                    
+                    <div style="margin-top:10px; border:1px solid #ddd; padding:10px;">
+                        <strong>Transport Avant</strong>
+                        <div class="form-grid">
+                            <input id="av_lieu_depart" placeholder="Départ"><input id="av_lieu_arrivee" placeholder="Arrivée">
+                            <input type="date" id="av_date_dep"><input type="time" id="av_heure_dep">
+                            <input type="date" id="av_date_arr"><input type="time" id="av_heure_arr">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:10px; border:1px solid #ddd; padding:10px;">
+                        <strong>Transport Après</strong>
+                        <div class="form-grid">
+                            <input id="ap_lieu_depart" placeholder="Départ"><input id="ap_lieu_arrivee" placeholder="Arrivée">
+                            <input type="date" id="ap_date_dep"><input type="time" id="ap_heure_dep">
+                            <input type="date" id="ap_date_arr"><input type="time" id="ap_heure_arr">
+                        </div>
+                    </div>
+                    
+                    <div class="form-grid" style="margin-top:10px;">
+                        <input id="faita" placeholder="Fait à"><input type="date" id="dateSignature">
+                    </div>
+                </div>
+
+                <div id="bloc_inhumation" class="card specific-block"><div class="form-grid"><input id="cimetiere_nom" placeholder="Cimetière"><input id="num_concession" placeholder="N° Concession"><input id="titulaire_concession" placeholder="Titulaire"><select id="type_sepulture"><option>Caveau</option><option>Pleine Terre</option></select><input type="date" id="date_inhumation"><input type="time" id="heure_inhumation"></div></div>
+                <div id="bloc_cremation" class="card specific-block hidden"><div class="form-grid"><input id="crematorium_nom" placeholder="Crématorium"><input type="date" id="date_cremation"><input type="time" id="heure_cremation"><input id="destination_cendres" placeholder="Cendres"></div></div>
+                <div id="bloc_rapatriement" class="card specific-block hidden">
+                    <div class="form-grid">
+                        <input id="rap_pays" placeholder="Pays"><input id="rap_ville" placeholder="Ville"><input id="rap_lta" placeholder="LTA"><input id="rap_immat" placeholder="Véhicule">
+                        <input id="vol1_num" placeholder="Vol 1"><input id="vol1_dep_aero" placeholder="Dép Aero"><input id="vol1_arr_aero" placeholder="Arr Aero">
+                        <input id="vol1_dep_time" placeholder="Heure Dép"><input id="vol1_arr_time" placeholder="Heure Arr">
+                        <input type="checkbox" id="check_vol2" onchange="window.toggleVol2()"> Vol 2
+                    </div>
+                    <div id="bloc_vol2" class="hidden form-grid"><input id="vol2_num" placeholder="Vol 2"><input id="vol2_dep_aero"><input id="vol2_arr_aero"><input id="vol2_dep_time"><input id="vol2_arr_time"></div>
+                    <div class="form-grid"><input id="rap_date_dep_route" placeholder="Date Route"><input id="rap_ville_dep"><input id="rap_ville_arr"></div>
                 </div>
 
                 <div class="card" style="border-top:4px solid #8b5cf6;">
@@ -140,9 +187,13 @@
                         <button class="btn btn-purple" onclick="window.genererPouvoir()">Pouvoir</button>
                         <button class="btn btn-purple" onclick="window.genererDeclaration()">Déclaration Décès</button>
                         <button class="btn btn-purple" onclick="window.genererFermeture()">PV Fermeture</button>
+                        <button class="btn btn-purple" onclick="window.genererDemandeFermetureMairie()">Fermeture Mairie</button>
                         <button class="btn btn-blue" id="btn_inhumation" onclick="window.genererDemandeInhumation()">Demande Inhumation</button>
                         <button class="btn btn-blue hidden" id="btn_cremation" onclick="window.genererDemandeCremation()">Demande Crémation</button>
                         <button class="btn btn-red hidden" id="btn_rapatriement" onclick="window.genererDemandeRapatriement()">Rapatriement</button>
+                        <button class="btn btn-blue" onclick="window.genererDemandeOuverture()">Ouverture Sépulture</button>
+                        <button class="btn btn-purple" onclick="window.genererTransport('avant')">Transp. Avant</button>
+                        <button class="btn btn-purple" onclick="window.genererTransport('apres')">Transp. Après</button>
                     </div>
                 </div>
             </div>
