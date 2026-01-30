@@ -1,157 +1,81 @@
-/* script.js (RACINE) */
+/* js/index_logic.js */
+import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from './config.js';
+import * as Utils from './utils.js';
+import * as PDF from './pdf_admin.js';
+import * as DB from './db_manager.js';
 
-// 1. IMPORTS DEPUIS LE DOSSIER JS/
-import { auth } from './js/config.js'; 
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import * as Utils from './js/utils.js';
-import * as PDF from './js/pdf_admin.js';
-import * as Clients from './js/client_manager.js';
-import * as Stock from './js/stock_manager.js';
-
-// 2. EXPOSITION GLOBALE DES FONCTIONS
-// PDF
+// --- 1. EXPOSER LES FONCTIONS AU HTML ---
+// Comme votre HTML utilise "onclick='window.fonction()'", on doit les attacher à window
 window.genererPouvoir = PDF.genererPouvoir;
-window.genererDeclaration = PDF.genererDeclaration;
-window.genererDemandeInhumation = PDF.genererDemandeInhumation;
-window.genererDemandeCremation = PDF.genererDemandeCremation;
-window.genererDemandeRapatriement = PDF.genererDemandeRapatriement;
-window.genererDemandeFermetureMairie = PDF.genererDemandeFermetureMairie;
-window.genererDemandeOuverture = PDF.genererDemandeOuverture;
-window.genererFermeture = PDF.genererFermeture;
-window.genererTransport = PDF.genererTransport;
+// ... Attachez ici les autres fonctions PDF importées
 
-// CLIENTS
-window.ouvrirDossier = ouvrirDossier;
-window.supprimerDossier = Clients.supprimerDossier;
-window.sauvegarderDossier = Clients.sauvegarderDossier;
-window.chargerBaseClients = Clients.chargerBaseClients; 
-window.chargerDossier = Clients.chargerDossier;
+window.chargerBaseClients = DB.chargerBaseClients;
+window.chargerDossier = DB.chargerDossier;
+window.sauvegarderDossier = DB.sauvegarderDossier;
+window.supprimerDossier = DB.supprimerDossier;
+window.chargerStock = DB.chargerStock;
+window.ajouterArticleStock = DB.ajouterArticle;
+window.supprimerArticle = DB.supprimerArticle;
 
-// STOCKS
-window.ajouterArticleStock = Stock.ajouterArticle;
-window.supprimerArticle = Stock.supprimerArticle;
-window.mouvementStock = Stock.mouvementStock;
-window.chargerStock = Stock.chargerStock; 
-window.updateStock = Stock.mouvementStock; 
-
-// UI
-window.openAjoutStock = function() {
-    document.getElementById('form-stock').classList.remove('hidden');
-    document.getElementById('st_nom').value = "";
-    document.getElementById('st_qte').value = "1";
-};
-
-// 3. AUTHENTIFICATION
-const loginScreen = document.getElementById('login-screen');
-const appLoader = document.getElementById('app-loader');
-
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        if(loginScreen) loginScreen.classList.add('hidden');
-        if(appLoader) appLoader.style.display = 'none';
-        Utils.chargerLogoBase64();
-        Clients.chargerBaseClients();
-        Stock.chargerStock();
-        
-        // Date Heure
-        setInterval(() => {
-            const now = new Date();
-            const elTime = document.getElementById('header-time');
-            const elDate = document.getElementById('header-date');
-            if(elTime) elTime.innerText = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
-            if(elDate) elDate.innerText = now.toLocaleDateString('fr-FR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
-        }, 1000);
-    } else {
-        if(loginScreen) loginScreen.classList.remove('hidden');
-        if(appLoader) appLoader.style.display = 'none';
-    }
-});
-
-window.loginFirebase = async function() {
-    try {
-        await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
-    } catch (e) { alert("Erreur connexion : " + e.message); }
-};
-
-window.logoutFirebase = async function() {
-    if(confirm("Se déconnecter ?")) { await signOut(auth); window.location.reload(); }
-};
-
-// 4. NAVIGATION
-window.showSection = function(sectionId) {
-    ['home', 'admin', 'base', 'stock'].forEach(id => {
-        const el = document.getElementById('view-' + id);
-        if(el) el.classList.add('hidden');
-    });
-    const target = document.getElementById('view-' + sectionId);
-    if(target) target.classList.remove('hidden');
+// --- 2. LOGIQUE UI (Menu, Onglets) ---
+window.showSection = function(id) {
+    document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden')); // Cache tout
+    const target = document.getElementById('view-' + id);
+    if(target) target.classList.remove('hidden'); // Affiche le bon
     
-    if(sectionId === 'base') Clients.chargerBaseClients();
-    if(sectionId === 'stock') Stock.chargerStock();
+    // Actions auto
+    if(id === 'base') DB.chargerBaseClients();
+    if(id === 'stock') DB.chargerStock();
 };
 
-window.switchAdminTab = function(tabName) {
+window.toggleSidebar = function() {
+    const sb = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    if(window.innerWidth < 768) {
+        sb.classList.toggle('mobile-open');
+        overlay.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+    } else {
+        sb.classList.toggle('collapsed');
+    }
+};
+
+window.openAjoutStock = function() { document.getElementById('form-stock').classList.remove('hidden'); };
+window.switchAdminTab = function(tab) {
     document.getElementById('tab-content-identite').classList.add('hidden');
     document.getElementById('tab-content-technique').classList.add('hidden');
     document.getElementById('tab-btn-identite').classList.remove('active');
     document.getElementById('tab-btn-technique').classList.remove('active');
-    document.getElementById('tab-content-' + tabName).classList.remove('hidden');
-    document.getElementById('tab-btn-' + tabName).classList.add('active');
-};
-
-// 5. LOGIQUE FORMULAIRE ADMIN
-window.toggleSections = function() {
-    const type = document.getElementById('prestation').value;
-    document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden')); 
-    document.getElementById('btn_inhumation').classList.add('hidden');
-    document.getElementById('btn_cremation').classList.add('hidden');
-    document.getElementById('btn_rapatriement').classList.add('hidden');
     
-    if(type === 'Inhumation') {
-        document.getElementById('bloc_inhumation').classList.remove('hidden');
-        document.getElementById('btn_inhumation').classList.remove('hidden');
-    }
-    if(type === 'Crémation') {
-        document.getElementById('bloc_cremation').classList.remove('hidden');
-        document.getElementById('btn_cremation').classList.remove('hidden');
-    }
-    if(type === 'Rapatriement') {
-        document.getElementById('bloc_rapatriement').classList.remove('hidden');
-        document.getElementById('btn_rapatriement').classList.remove('hidden');
-    }
+    document.getElementById('tab-content-' + tab).classList.remove('hidden');
+    document.getElementById('tab-btn-' + tab).classList.add('active');
 };
 
-window.togglePolice = function() {
-    const val = document.getElementById('type_presence_select').value;
-    document.getElementById('police_fields').classList.toggle('hidden', val !== 'police');
-    document.getElementById('famille_fields').classList.toggle('hidden', val === 'police');
+// --- 3. AUTHENTIFICATION ---
+window.loginFirebase = async function() {
+    try {
+        await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+    } catch(e) { alert("Erreur login: " + e.message); }
 };
+window.logoutFirebase = async function() { await signOut(auth); window.location.reload(); };
 
-window.toggleVol2 = function() {
-    const chk = document.getElementById('check_vol2');
-    if(chk) document.getElementById('bloc_vol2').classList.toggle('hidden', !chk.checked);
-};
-
-window.viderFormulaire = function() {
-    if(confirm("Tout effacer ?")) ouvrirDossier(null);
-};
-
-function ouvrirDossier(id = null) {
-    document.getElementById('dossier_id').value = id || "";
-    if(!id) {
-        document.querySelectorAll('#view-admin input').forEach(i => i.value = "");
-        document.getElementById('prestation').selectedIndex = 0;
-        window.toggleSections();
+// --- 4. INITIALISATION ---
+onAuthStateChanged(auth, (user) => {
+    const loader = document.getElementById('app-loader');
+    if(loader) loader.style.display = 'none';
+    
+    if(user) {
+        document.getElementById('login-screen').classList.add('hidden');
+        Utils.chargerLogoBase64();
+        DB.chargerBaseClients();
+        DB.chargerStock();
+        
+        // Date et Heure
+        setInterval(() => {
+            const now = new Date();
+            if(document.getElementById('header-time')) document.getElementById('header-time').innerText = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+            if(document.getElementById('header-date')) document.getElementById('header-date').innerText = now.toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        }, 1000);
+    } else {
+        document.getElementById('login-screen').classList.remove('hidden');
     }
-    window.showSection('admin');
-}
-
-// 6. MENU MOBILE (FONCTION CORRIGÉE)
-window.toggleSidebar = function() {
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('mobile-overlay');
-    if(sidebar) {
-        sidebar.classList.toggle('mobile-open');
-        if(overlay) overlay.style.display = sidebar.classList.contains('mobile-open') ? 'block' : 'none';
-    }
-};
+});
