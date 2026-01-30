@@ -1,4 +1,3 @@
-/* js/utils.js */
 export let logoBase64 = null;
 
 export function chargerLogoBase64() {
@@ -8,7 +7,7 @@ export function chargerLogoBase64() {
         c.width = img.naturalWidth;
         c.height = img.naturalHeight;
         c.getContext("2d").drawImage(img, 0, 0);
-        try { logoBase64 = c.toDataURL("image/png"); } catch (e) { console.warn("Erreur logo:", e); }
+        try { logoBase64 = c.toDataURL("image/png"); } catch (e) {}
     }
 }
 
