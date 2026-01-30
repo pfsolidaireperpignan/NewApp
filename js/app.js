@@ -1,4 +1,4 @@
-/* js/app.js - VOTRE LOGIQUE ORIGINALE */
+/* js/app.js - VERSION FINALE AVEC HORLOGE */
 import { auth, db, collection, addDoc, getDocs, getDoc, query, orderBy, onAuthStateChanged, signInWithEmailAndPassword, signOut, deleteDoc, updateDoc, doc, sendPasswordResetEmail } from "./config.js";
 
 // Variable Globale pour la GED
@@ -8,20 +8,28 @@ window.current_pieces_jointes = [];
 // 1. INITIALISATION & NAVIGATION
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    chargerLogoBase64(); 
     const loader = document.getElementById('app-loader');
     
     onAuthStateChanged(auth, (user) => {
         if(loader) loader.style.display = 'none';
         if (user) {
             document.getElementById('login-screen').classList.add('hidden');
+            
+            // --- LANCEMENT DES DONNÉES ---
             window.chargerBaseClients(); 
             chargerClientsFacturation(); 
             window.chargerStock(); 
+            
+            // --- CORRECTION : LANCEMENT DE L'HORLOGE ---
+            lancerHorloge(); 
+            
         } else {
             document.getElementById('login-screen').classList.remove('hidden');
         }
     });
 
+    // Gestion Boutons Login
     if(document.getElementById('btn-login')) {
         document.getElementById('btn-login').addEventListener('click', async () => {
             try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } 
@@ -29,29 +37,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Gestion Mot de passe oublié
     if(document.getElementById('btn-forgot')) {
         document.getElementById('btn-forgot').addEventListener('click', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             if(!email) return alert("⚠️ Veuillez d'abord écrire votre EMAIL dans la case 'Email'.");
             if(confirm("Envoyer un lien de réinitialisation à : " + email + " ?")) {
-                try { 
-                    await sendPasswordResetEmail(auth, email); 
-                    alert("📧 Email envoyé ! Vérifiez votre boîte de réception."); 
-                } catch(e) { alert("Erreur : " + e.message); }
+                try { await sendPasswordResetEmail(auth, email); alert("📧 Email envoyé !"); } 
+                catch(e) { alert("Erreur : " + e.message); }
             }
         });
     }
     
+    // Gestion Boutons Import/Save
     if(document.getElementById('btn-import')) document.getElementById('btn-import').addEventListener('click', importerClient);
     if(document.getElementById('btn-save-bdd')) document.getElementById('btn-save-bdd').addEventListener('click', sauvegarderEnBase);
     
-    if(document.getElementById('btn-logout')) {
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            if(confirm("Se déconnecter ?")) { signOut(auth).then(() => window.location.reload()); }
-        });
-    }
-
+    // Recherche
     const searchInput = document.getElementById('search-client');
     if(searchInput) {
         searchInput.addEventListener('keyup', (e) => {
@@ -64,15 +67,35 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================================
-// 2. LOGIQUE INTERFACE (NAVIGATION & ONGLETS)
+// 2. FONCTION HORLOGE (LA CORRECTION EST ICI)
+// ==========================================================================
+function lancerHorloge() {
+    const update = () => {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+        const dateString = now.toLocaleDateString('fr-FR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        
+        const elTime = document.getElementById('header-time');
+        const elDate = document.getElementById('header-date');
+        
+        if(elTime) elTime.innerText = timeString;
+        if(elDate) elDate.innerText = dateString;
+    };
+    // Mise à jour immédiate puis toutes les secondes
+    update();
+    setInterval(update, 1000);
+}
+
+// ==========================================================================
+// 3. LOGIQUE INTERFACE
 // ==========================================================================
 window.showSection = function(id) {
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-base').classList.add('hidden');
-    document.getElementById('view-admin').classList.add('hidden');
-    document.getElementById('view-stock').classList.add('hidden'); 
-    
-    document.getElementById('view-' + id).classList.remove('hidden');
+    ['home', 'base', 'admin', 'stock'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if(el) el.classList.add('hidden');
+    });
+    const target = document.getElementById('view-' + id);
+    if(target) target.classList.remove('hidden');
     
     if(id === 'base') window.chargerBaseClients();
     if(id === 'stock') window.chargerStock();
@@ -151,7 +174,7 @@ window.viderFormulaire = function() {
 };
 
 // ==========================================================================
-// 3. GESTION DES STOCKS
+// 4. GESTION DES STOCKS
 // ==========================================================================
 window.openAjoutStock = function() {
     document.getElementById('form-stock').classList.remove('hidden');
@@ -221,7 +244,6 @@ window.updateStock = async function(id, delta) {
     try {
         const docRef = doc(db, "stock_articles", id);
         const docSnap = await getDoc(docRef);
-        
         if (docSnap.exists()) {
             const currentQte = docSnap.data().qte || 0;
             const newQte = currentQte + delta;
@@ -234,16 +256,59 @@ window.updateStock = async function(id, delta) {
 
 window.supprimerArticle = async function(id) {
     if(confirm("Supprimer cet article du stock ?")) {
-        try {
-            await deleteDoc(doc(db, "stock_articles", id));
-            window.chargerStock();
-        } catch(e) { alert("Erreur : " + e.message); }
+        try { await deleteDoc(doc(db, "stock_articles", id)); window.chargerStock(); } catch(e) { alert("Erreur : " + e.message); }
     }
 };
 
 // ==========================================================================
-// 4. DONNÉES DOSSIERS & FACTURATION
+// 5. DONNÉES DOSSIERS (AVEC FIXE CHARGEMENT RAPIDE)
 // ==========================================================================
+window.chargerBaseClients = async function() {
+    const tbody = document.getElementById('clients-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Chargement...</td></tr>';
+    
+    try {
+        // FIXE CHARGEMENT : On enlève le tri serveur orderBy qui peut bloquer
+        const snap = await getDocs(collection(db, "dossiers_admin"));
+        
+        if(snap.empty) { 
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucun dossier.</td></tr>'; 
+            return; 
+        }
+
+        // Tri local JS (Plus rapide et fiable)
+        let dossiers = [];
+        snap.forEach(doc => { dossiers.push({ id: doc.id, ...doc.data() }); });
+        dossiers.sort((a, b) => new Date(b.date_creation || 0) - new Date(a.date_creation || 0));
+
+        tbody.innerHTML = '';
+        dossiers.forEach(data => {
+            const op = data.technique ? (data.technique.type_operation || "Inhumation") : "Inhumation";
+            const nomD = (data.defunt?.civility || "") + " " + (data.defunt?.nom || '?');
+            const nomM = (data.mandant?.civility || "") + " " + (data.mandant?.nom || '-');
+            const dateC = data.date_creation ? new Date(data.date_creation).toLocaleDateString() : "-";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${dateC}</td>
+                <td><strong>${nomD}</strong></td>
+                <td>${nomM}</td>
+                <td><span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">${op}</span></td>
+                <td style="text-align:center; display:flex; justify-content:center; gap:5px;">
+                    <button class="btn-icon" onclick="window.chargerDossier('${data.id}')" title="Modifier"><i class="fas fa-edit" style="color:#3b82f6;"></i></button>
+                    <button class="btn-icon" onclick="window.goToFacturation('${data.defunt?.nom || ''}')" title="Voir Factures"><i class="fas fa-file-invoice-dollar" style="color:#10b981;"></i></button>
+                    <button class="btn-icon" onclick="window.supprimerDossier('${data.id}')" style="margin-left:5px;"><i class="fas fa-trash" style="color:#ef4444;"></i></button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    } catch(e) { console.error(e); }
+};
+
+// ... (Fonctions utilitaires getVal, setVal, importerClient, etc.)
+function getVal(id) { return document.getElementById(id) ? document.getElementById(id).value : ""; }
+function setVal(id, val) { const el = document.getElementById(id); if(el) el.value = val || ""; }
+
 let clientsCache = [];
 async function chargerClientsFacturation() {
     const select = document.getElementById('select-import-client');
@@ -287,9 +352,6 @@ function importerClient() {
     }
 }
 
-function getVal(id) { return document.getElementById(id) ? document.getElementById(id).value : ""; }
-function setVal(id, val) { const el = document.getElementById(id); if(el) el.value = val || ""; }
-
 async function sauvegarderEnBase() {
     const btn = document.getElementById('btn-save-bdd');
     const dossierId = document.getElementById('dossier_id').value;
@@ -331,7 +393,7 @@ async function sauvegarderEnBase() {
             details_op: {
                 cimetiere: getVal('cimetiere_nom'), concession: getVal('num_concession'), titulaire: getVal('titulaire_concession'),
                 crematorium: getVal('crematorium_nom'), dest_cendres: getVal('destination_cendres'), type_sepulture: getVal('type_sepulture'),
-                rapa_pays: getVal('rap_pays'), rapa_ville: getVal('rap_ville'), rapa_lta: getVal('rap_lta'),
+                rapa_pays: getVal('rapa_pays'), rapa_ville: getVal('rapa_ville'), rapa_lta: getVal('rapa_lta'),
                 vol1: getVal('vol1_num'), vol2: getVal('vol2_num'),
                 rapa_route: { immat: getVal('rap_immat'), dep_date: getVal('rap_date_dep_route'), ville_dep: getVal('rap_ville_dep'), ville_arr: getVal('rap_ville_arr') },
                 vol_details: { 
@@ -436,66 +498,6 @@ window.supprimerDossier = async function(id) {
     }
 };
 
-/* REMPLACEZ TOUTE LA FONCTION window.chargerBaseClients PAR CECI */
-
-window.chargerBaseClients = async function() {
-    const tbody = document.getElementById('clients-table-body');
-    if(!tbody) return;
-    
-    // Loader plus visible
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#3b82f6;"><i class="fas fa-circle-notch fa-spin"></i> Chargement des dossiers...</td></tr>';
-    
-    try {
-        // 1. On récupère la collection SANS trier côté serveur (C'est ça qui bloquait souvent)
-        // Cela évite les erreurs d'index Firebase et les temps morts
-        const snap = await getDocs(collection(db, "dossiers_admin"));
-        
-        if(snap.empty) { 
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Aucun dossier trouvé dans la base.</td></tr>'; 
-            return; 
-        }
-
-        // 2. On convertit en liste JavaScript pour trier nous-mêmes (Instantané)
-        let dossiers = [];
-        snap.forEach(doc => {
-            dossiers.push({ id: doc.id, ...doc.data() });
-        });
-
-        // 3. Tri du plus récent au plus ancien (Basé sur la date de création)
-        dossiers.sort((a, b) => {
-            const dateA = a.date_creation ? new Date(a.date_creation) : new Date(0);
-            const dateB = b.date_creation ? new Date(b.date_creation) : new Date(0);
-            return dateB - dateA; // Descendant
-        });
-
-        // 4. Affichage
-        tbody.innerHTML = '';
-        dossiers.forEach(data => {
-            const op = data.technique ? (data.technique.type_operation || "Inhumation") : "Inhumation";
-            const nomD = (data.defunt?.civility || "") + " " + (data.defunt?.nom || '?');
-            const nomM = (data.mandant?.civility || "") + " " + (data.mandant?.nom || '-');
-            const dateC = data.date_creation ? new Date(data.date_creation).toLocaleDateString() : "-";
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${dateC}</td>
-                <td><strong>${nomD}</strong></td>
-                <td>${nomM}</td>
-                <td><span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">${op}</span></td>
-                <td style="text-align:center; display:flex; justify-content:center; gap:8px;">
-                    <button class="btn-icon" onclick="window.chargerDossier('${data.id}')" title="Modifier"><i class="fas fa-edit" style="color:#3b82f6;"></i></button>
-                    <button class="btn-icon" onclick="window.goToFacturation('${data.defunt?.nom || ''}')" title="Voir Factures"><i class="fas fa-file-invoice-dollar" style="color:#10b981;"></i></button>
-                    <button class="btn-icon" onclick="window.supprimerDossier('${data.id}')" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
-                </td>`;
-            tbody.appendChild(tr);
-        });
-
-    } catch(e) { 
-        console.error("Erreur chargement:", e); 
-        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center; padding:20px;">Erreur connexion: ${e.message}</td></tr>`; 
-    }
-};
-
 window.goToFacturation = function(nomDefunt) {
     if(nomDefunt) {
         window.location.href = `facturation_v2.html?search=${encodeURIComponent(nomDefunt)}`;
@@ -503,6 +505,16 @@ window.goToFacturation = function(nomDefunt) {
         window.location.href = `facturation_v2.html`;
     }
 };
+
+// --- LOGO SHARED ---
+let logoBase64 = null;
+function chargerLogoBase64() {
+    const img = document.getElementById('logo-source');
+    if (img && img.naturalWidth > 0) {
+        const c = document.createElement("canvas"); c.width=img.naturalWidth; c.height=img.naturalHeight;
+        c.getContext("2d").drawImage(img,0,0); try{logoBase64=c.toDataURL("image/png");}catch(e){}
+    }
+}
 
 // GED
 window.ajouterPieceJointe = function() {
@@ -535,6 +547,7 @@ window.ajouterPieceJointe = function() {
 
 window.afficherPiecesJointes = function() {
     const container = document.getElementById('liste_pieces_jointes');
+    if(!container) return;
     container.innerHTML = "";
 
     if (!window.current_pieces_jointes || window.current_pieces_jointes.length === 0) {
@@ -571,4 +584,3 @@ window.supprimerDocument = function(index) {
         window.afficherPiecesJointes();
     }
 };
-
