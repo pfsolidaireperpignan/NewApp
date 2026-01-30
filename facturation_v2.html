@@ -37,15 +37,24 @@
     <nav class="sidebar">
         <div class="brand">
             <i class="fas fa-dove"></i> 
-            <span class="brand-text">PF FINANCE</span>
+            <span class="brand-text">PF ERP</span> 
             <span style="font-size:0.5em; color:var(--gray); font-weight:400; margin-left:5px;" class="brand-text">v17</span>
             <button id="btn-toggle-menu" onclick="window.toggleSidebar()" style="margin-left:auto; border:none; background:transparent; cursor:pointer; color:var(--gray);">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
         <ul class="nav-menu">
-            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-arrow-left"></i> <span class="nav-text">Retour ERP</span></a></li>
-            <li class="nav-item"><a href="#" onclick="location.reload()" class="nav-link active"><i class="fas fa-chart-line"></i> <span class="nav-text">Pilotage</span></a></li>
+            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
+            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
+            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
+            <li class="nav-item"><a href="index.html" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
+            <li class="nav-item"><a href="#" onclick="location.reload()" class="nav-link active"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
+            <li class="nav-item">
+                <a href="dossier_complet.html" class="nav-link" style="color:#ea580c;">
+                    <i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span>
+                </a>
+            </li>
+            <li class="nav-item" style="margin-top:auto;"><a href="#" onclick="window.logout()" class="nav-link" style="color:#ef4444;"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
         </ul>
     </nav>
 
@@ -110,11 +119,11 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <input type="text" id="search_depense" placeholder="🔍 Nom, Référence..." style="flex:2;" onkeyup="window.filtrerDepenses()">
-                        <select id="filter_year" onchange="window.filtrerDepenses()" style="flex:1;">
+                        <input type="text" id="search_depense" placeholder="🔍 Nom, Référence..." style="flex:2; padding:10px; border:1px solid #94a3b8; border-radius:6px; min-width:200px;" onkeyup="window.filtrerDepenses()">
+                        <select id="filter_year" onchange="window.filtrerDepenses()" style="flex:1; padding:10px; border:1px solid #94a3b8; border-radius:6px;">
                             <option value="">Années</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
                         </select>
-                        <select id="filter_month" onchange="window.filtrerDepenses()" style="flex:1;">
+                        <select id="filter_month" onchange="window.filtrerDepenses()" style="flex:1; padding:10px; border:1px solid #94a3b8; border-radius:6px;">
                             <option value="">Mois</option>
                             <option value="0">Janv</option><option value="1">Févr</option><option value="2">Mars</option><option value="3">Avr</option><option value="4">Mai</option><option value="5">Juin</option><option value="6">Juil</option><option value="7">Août</option><option value="8">Sept</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Déc</option>
                         </select>
@@ -142,12 +151,10 @@
                     </div>
                 </div>
 
-                <div class="card" style="padding:0; overflow:hidden;">
-                    <table class="compta-table">
-                        <thead><tr><th onclick="window.trierTableau('date')">Dates <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('fournisseur')">Fournisseur <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('categorie')">Catégorie <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('statut')">Statut <i class="fas fa-sort"></i></th><th style="text-align:right;" onclick="window.trierTableau('montant')">Montant <i class="fas fa-sort"></i></th><th style="text-align:center;">Action</th></tr></thead>
-                        <tbody id="depenses-body"><tr><td colspan="6" style="text-align:center;">Chargement...</td></tr></tbody>
-                    </table>
-                </div>
+                <table class="compta-table">
+                    <thead><tr><th onclick="window.trierTableau('date')">Dates <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('fournisseur')">Fournisseur <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('categorie')">Catégorie <i class="fas fa-sort"></i></th><th onclick="window.trierTableau('statut')">Statut <i class="fas fa-sort"></i></th><th style="text-align:right;" onclick="window.trierTableau('montant')">Montant <i class="fas fa-sort"></i></th><th style="text-align:center;">Action</th></tr></thead>
+                    <tbody id="depenses-body"><tr><td colspan="6" style="text-align:center;">Chargement...</td></tr></tbody>
+                </table>
             </div>
         </div>
 
@@ -225,6 +232,17 @@
     <script type="module" src="js/facturation.js"></script>
     
     <script>
+        // Déconnexion
+        window.logout = function() {
+            // Import dynamique pour la déconnexion
+            import('./js/config.js').then(module => {
+                import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js').then(authModule => {
+                    if(confirm("Se déconnecter ?")) { authModule.signOut(module.auth).then(() => window.location.href = "index.html"); }
+                });
+            });
+        };
+
+        // Bouton PDF
         document.getElementById('btn-pdf').addEventListener('click', () => {
             const lignes = [];
             document.querySelectorAll('#tbody_lignes tr').forEach(tr => {
@@ -243,7 +261,7 @@
                 client: { civility: document.getElementById('client_civility').value, nom: document.getElementById('client_nom').value, adresse: document.getElementById('client_adresse').value },
                 defunt: { civility: document.getElementById('defunt_civility').value, nom: document.getElementById('defunt_nom').value },
                 info: { type: document.getElementById('doc_type').value, date: document.getElementById('doc_date').value, numero: document.getElementById('doc_numero').value, total: parseFloat(document.getElementById('total_display').innerText) },
-                lignes: lignes, paiements: [] // Géré par le module
+                lignes: lignes, paiements: [] // Géré par le module via variable globale
             };
             if(window.generatePDFFromData) window.generatePDFFromData(data, true);
         });
