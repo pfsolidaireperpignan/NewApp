@@ -1,4 +1,4 @@
-/* js/facturation.js - LOGIQUE FACTURATION (V3 FINALE) */
+/* js/facturation.js - AVEC CORRECTIONS (Bouton Modifier & Statut) */
 import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, getDoc, auth } from "./config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { logoBase64, chargerLogoBase64 } from "./utils.js"; 
@@ -11,9 +11,7 @@ onAuthStateChanged(auth, (user) => {
         window.chargerListeFactures();
         window.chargerDepenses();
         chargerSuggestionsClients();
-        // Initialiser date du jour
-        const dateFac = document.getElementById('dep_date_fac');
-        if(dateFac) dateFac.valueAsDate = new Date();
+        if(document.getElementById('dep_date_fac')) document.getElementById('dep_date_fac').valueAsDate = new Date();
     }
 });
 
@@ -25,7 +23,7 @@ let global_Depenses = 0;
 const currentYear = new Date().getFullYear();
 let currentSort = { col: 'date', order: 'desc' };
 
-// --- PDF ENGINE (VOTRE VERSION EXACTE : VERTE + DATES) ---
+// --- PDF ENGINE (VOTRE VERSION VERTE) ---
 window.generatePDFFromData = function(data, saveMode = false) {
     if(!logoBase64) chargerLogoBase64();
     const { jsPDF } = window.jspdf;
@@ -34,7 +32,8 @@ window.generatePDFFromData = function(data, saveMode = false) {
     // 1. Logo & Header
     if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 25, 25); } catch(e){} }
     
-    const greenColor = [34, 155, 76]; // Vert Solidaire
+    // Vert Foncé PF Solidaire
+    const greenColor = [34, 155, 76]; 
     
     doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...greenColor);
     doc.text("POMPES FUNEBRES", 15, 40); doc.text("SOLIDAIRE PERPIGNAN", 15, 45);
@@ -58,25 +57,21 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const dateStr = data.info.date ? data.info.date.split('-').reverse().join('/') : "";
     doc.text(`du ${dateStr}`, 90, y); 
     
-    // --- BLOC DÉFUNT AVEC DATES ---
+    // DÉFUNT
     doc.setFont("helvetica","bold"); 
     const defuntNom = `${data.defunt.civility || ''} ${data.defunt.nom || ''}`;
     doc.text(`DÉFUNT : ${defuntNom}`, 130, y); 
     y += 5;
     
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(100);
-    
-    // Formatage des dates pour affichage
+    let textDates = "";
     const dateN = data.defunt.date_naiss ? data.defunt.date_naiss.split('-').reverse().join('/') : "";
     const dateD = data.defunt.date_deces ? data.defunt.date_deces.split('-').reverse().join('/') : "";
+    if(dateN) textDates += `Né(e) le : ${dateN}`;
+    if(dateN && dateD) textDates += "  -  ";
+    if(dateD) textDates += `Décédé(e) le : ${dateD}`;
+    doc.text(textDates, 130, y);
     
-    if(dateN || dateD) {
-        let textDates = "";
-        if(dateN) textDates += `Né(e) le : ${dateN}`;
-        if(dateN && dateD) textDates += "  -  ";
-        if(dateD) textDates += `Décédé(e) le : ${dateD}`;
-        doc.text(textDates, 130, y);
-    }
     y += 8;
 
     // Tableau
@@ -133,13 +128,12 @@ window.generatePDFFromData = function(data, saveMode = false) {
     doc.text("RESTE À PAYER :", 140, yReste + 2); 
     doc.text(reste.toFixed(2) + " €", 193, yReste + 2, {align:'right'});
 
-    // Bas de page
     if (typeDoc === 'FACTURE') {
         if (curY + 45 > 280) { doc.addPage(); curY = 20; yReste = 20; }
         doc.setDrawColor(200); doc.setFillColor(250, 250, 250);
         doc.rect(15, curY, 115, 38, 'FD'); 
         doc.setFontSize(9); doc.setTextColor(...greenColor); doc.setFont("helvetica", "bold");
-        doc.text(`Somme de ${reste.toFixed(2)} € à payer dès réception.`, 18, curY + 6);
+        doc.text(`Somme de ${reste.toFixed(2)} € à payer dès réception de la facture.`, 18, curY + 6);
         doc.setTextColor(0); doc.setFontSize(8);
         doc.text("Banque : BANQUE POPULAIRE DU SUD", 18, curY + 19);
         doc.text("IBAN : FR76 1660 7000 0738 2217 4454 393", 18, curY + 29);
@@ -149,14 +143,15 @@ window.generatePDFFromData = function(data, saveMode = false) {
          let ySig = Math.max(curY, yReste + 10) + 5; 
          doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, ySig, 180, 35);
          doc.setFontSize(9); doc.setTextColor(0); doc.setFont("helvetica", "normal");
-         doc.text("Bon pour accord, le ......................... à .........................", 20, ySig + 8); 
-         doc.text("Signature du client :", 20, ySig + 20);
+         doc.text("Je soussigné(e),", 20, ySig + 8); 
+         doc.text("accepte le présent devis prévisionnel.", 130, ySig + 8);
+         doc.text("Signature précédée de la mention \"Lu et approuvé, bon pour acceptation\"", 20, ySig + 28);
     }
 
     if (saveMode) { doc.save(`${typeDoc}_${numDoc}.pdf`); } else { window.open(doc.output('bloburl'), '_blank'); }
 };
 
-// --- NAVIGATION UI ---
+// --- LOGIQUE UI ---
 window.switchTab = function(tab) {
     document.getElementById('tab-factures').classList.add('hidden');
     document.getElementById('tab-achats').classList.add('hidden');
@@ -178,17 +173,14 @@ window.nouveauDocument = function() {
     document.getElementById('current_doc_id').value = "";
     document.getElementById('doc_numero').value = "Auto";
     document.getElementById('client_nom').value = ""; document.getElementById('client_adresse').value = "";
-    document.getElementById('defunt_nom').value = ""; 
-    document.getElementById('doc_date').valueAsDate = new Date();
-    document.getElementById('defunt_date_naiss').value = ""; 
-    document.getElementById('defunt_date_deces').value = ""; 
+    document.getElementById('defunt_nom').value = ""; document.getElementById('doc_date').valueAsDate = new Date();
+    document.getElementById('defunt_date_naiss').value = ""; document.getElementById('defunt_date_deces').value = "";
     document.getElementById('doc_type').value = "DEVIS"; document.getElementById('tbody_lignes').innerHTML = "";
     paiements = []; window.renderPaiements(); window.calculTotal();
     document.getElementById('btn-transform').classList.add('hidden');
     document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-editor').classList.remove('hidden');
 };
 
-// --- LOGIQUE FACTURES ---
 window.chargerListeFactures = async function() {
     const tbody = document.getElementById('list-body'); tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Chargement...</td></tr>';
     try {
@@ -237,11 +229,8 @@ window.chargerDocument = async (id) => {
         document.getElementById('client_nom').value = data.client.nom;
         document.getElementById('client_adresse').value = data.client.adresse;
         document.getElementById('defunt_nom').value = data.defunt.nom;
-        
-        // Chargement Dates
         if(data.defunt.date_naiss) document.getElementById('defunt_date_naiss').value = data.defunt.date_naiss;
         if(data.defunt.date_deces) document.getElementById('defunt_date_deces').value = data.defunt.date_deces;
-
         document.getElementById('doc_type').value = data.info.type;
         document.getElementById('doc_date').value = data.info.date;
         document.getElementById('tbody_lignes').innerHTML = "";
@@ -276,12 +265,7 @@ window.sauvegarderDocument = async function() {
     });
     const docData = {
         client: { civility: document.getElementById('client_civility').value, nom: document.getElementById('client_nom').value, adresse: document.getElementById('client_adresse').value },
-        defunt: { 
-            civility: document.getElementById('defunt_civility').value, 
-            nom: document.getElementById('defunt_nom').value,
-            date_naiss: document.getElementById('defunt_date_naiss').value, // Save
-            date_deces: document.getElementById('defunt_date_deces').value  // Save
-        },
+        defunt: { civility: document.getElementById('defunt_civility').value, nom: document.getElementById('defunt_nom').value, date_naiss: document.getElementById('defunt_date_naiss').value, date_deces: document.getElementById('defunt_date_deces').value },
         info: { type: document.getElementById('doc_type').value, date: document.getElementById('doc_date').value, numero: document.getElementById('doc_numero').value, total: parseFloat(document.getElementById('total_display').innerText) },
         lignes: lignes, paiements: paiements, date_creation: new Date().toISOString()
     };
@@ -301,11 +285,55 @@ window.sauvegarderDocument = async function() {
 window.ajouterPaiement = () => { const p = { date: document.getElementById('pay_date').value, mode: document.getElementById('pay_mode').value, montant: parseFloat(document.getElementById('pay_amount').value) }; if(p.montant > 0) { paiements.push(p); window.renderPaiements(); window.calculTotal(); } };
 window.supprimerPaiement = (index) => { paiements.splice(index, 1); window.renderPaiements(); window.calculTotal(); };
 window.renderPaiements = () => { const div = document.getElementById('liste_paiements'); div.innerHTML = ""; paiements.forEach((p, i) => { div.innerHTML += `<div>${p.date} - ${p.mode}: <strong>${p.montant}€</strong> <i class="fas fa-trash" style="color:red;cursor:pointer;margin-left:10px;" onclick="window.supprimerPaiement(${i})"></i></div>`; }); };
-window.chargerDepenses = async function() { const tbody = document.getElementById('depenses-body'); try { const q = query(collection(db, "depenses"), orderBy("date", "desc")); const snap = await getDocs(q); cacheDepenses = []; global_Depenses = 0; snap.forEach(docSnap => { const data = docSnap.data(); data.id = docSnap.id; cacheDepenses.push(data); if(new Date(data.date).getFullYear() === currentYear && data.statut === 'Réglé') global_Depenses += (data.montant || 0); }); updateFinancialDashboard(); window.filtrerDepenses(); } catch(e) { console.error(e); } };
-window.filtrerDepenses = function() { const term = document.getElementById('search_depense').value.toLowerCase(); const tbody = document.getElementById('depenses-body'); tbody.innerHTML = ""; cacheDepenses.filter(d => (d.fournisseur+d.details+d.categorie).toLowerCase().includes(term)).forEach(data => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${new Date(data.date).toLocaleDateString()}</td><td><strong>${data.fournisseur}</strong><br><small>${data.categorie}</small></td><td>${data.reference || '-'}</td><td><span class="badge ${data.statut==='Réglé'?'badge-regle':'badge-attente'}">${data.statut}</span></td><td style="text-align:right; font-weight:bold; color:#b91c1c;">- ${data.montant.toFixed(2)} €</td><td style="text-align:center;"><button class="btn-icon" onclick="window.supprimerDepense('${data.id}')"><i class="fas fa-trash" style="color:red;"></i></button></td>`; tbody.appendChild(tr); }); };
-window.gererDepense = async function() { const id = document.getElementById('dep_edit_id').value; const data = { date: document.getElementById('dep_date_fac').value, reference: document.getElementById('dep_ref').value, fournisseur: document.getElementById('dep_fourn').value, details: document.getElementById('dep_details').value, categorie: document.getElementById('dep_cat').value, mode: document.getElementById('dep_mode').value, statut: document.getElementById('dep_statut').value, montant: parseFloat(document.getElementById('dep_montant').value) || 0, date_reglement: document.getElementById('dep_date_reg').value }; if(!data.date || !data.fournisseur) return alert("Champs obligatoires manquants."); try { if(id) await updateDoc(doc(db, "depenses", id), data); else { data.date_ajout = new Date().toISOString(); await addDoc(collection(db, "depenses"), data); } window.resetFormDepense(); window.chargerDepenses(); } catch(e){alert(e.message);} };
-window.resetFormDepense = function() { document.getElementById('dep_edit_id').value = ""; document.getElementById('form-depense').reset(); document.getElementById('btn-action-depense').innerHTML="SAUVER"; document.getElementById('btn-cancel-depense').classList.add('hidden'); };
-window.preparerModification = function(id) { const d = cacheDepenses.find(x=>x.id===id); if(d) { document.getElementById('dep_edit_id').value=id; document.getElementById('dep_date_fac').value=d.date; document.getElementById('dep_ref').value=d.reference; document.getElementById('dep_fourn').value=d.fournisseur; document.getElementById('dep_montant').value=d.montant; document.getElementById('dep_cat').value=d.categorie; document.getElementById('btn-action-depense').innerHTML="MODIFIER"; document.getElementById('btn-cancel-depense').classList.remove('hidden'); } };
+
+// --- ACHATS & DÉPENSES ---
+window.chargerDepenses = async function() {
+    const tbody = document.getElementById('depenses-body');
+    try {
+        const q = query(collection(db, "depenses"), orderBy("date", "desc")); const snap = await getDocs(q);
+        cacheDepenses = []; global_Depenses = 0;
+        snap.forEach(docSnap => { const data = docSnap.data(); data.id = docSnap.id; cacheDepenses.push(data); if(new Date(data.date).getFullYear() === currentYear && data.statut === 'Réglé') global_Depenses += (data.montant || 0); });
+        updateFinancialDashboard(); window.filtrerDepenses();
+    } catch(e) { console.error(e); }
+};
+
+window.filtrerDepenses = function() {
+    const term = document.getElementById('search_depense').value.toLowerCase();
+    const tbody = document.getElementById('depenses-body'); tbody.innerHTML = "";
+    cacheDepenses.filter(d => (d.fournisseur+d.details+d.categorie).toLowerCase().includes(term)).forEach(data => {
+        const tr = document.createElement('tr');
+        const badgeStatut = data.statut === 'Réglé' ? `<span class="badge badge-regle">Réglé</span>` : `<span class="badge badge-attente" onclick="window.marquerCommeRegle('${data.id}')" title="Valider paiement">En attente</span>`;
+        tr.innerHTML = `<td>${new Date(data.date).toLocaleDateString()}</td><td><strong>${data.fournisseur}</strong><br><small>${data.categorie}</small></td><td>${data.reference || '-'}</td><td>${badgeStatut}</td><td style="text-align:right; font-weight:bold; color:#b91c1c;">- ${data.montant.toFixed(2)} €</td><td style="text-align:center;"><button class="btn-icon" onclick="window.preparerModification('${data.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="window.supprimerDepense('${data.id}')"><i class="fas fa-trash" style="color:red;"></i></button></td>`;
+        tbody.appendChild(tr);
+    });
+};
+
+window.marquerCommeRegle = async function(id) { 
+    if(confirm("Confirmer le paiement de cette dépense ?")) {
+        try { await updateDoc(doc(db, "depenses", id), { statut: "Réglé", date_reglement: new Date().toISOString().split('T')[0] }); window.chargerDepenses(); } catch(e) { alert("Erreur : " + e.message); }
+    }
+};
+
+window.gererDepense = async function() { 
+    const id = document.getElementById('dep_edit_id').value;
+    const data = { date: document.getElementById('dep_date_fac').value, reference: document.getElementById('dep_ref').value, fournisseur: document.getElementById('dep_fourn').value, details: document.getElementById('dep_details').value, categorie: document.getElementById('dep_cat').value, mode: document.getElementById('dep_mode').value, statut: document.getElementById('dep_statut').value, montant: parseFloat(document.getElementById('dep_montant').value) || 0, date_reglement: document.getElementById('dep_date_reg').value };
+    if(!data.date || !data.fournisseur) return alert("Champs obligatoires manquants.");
+    try { if(id) { await updateDoc(doc(db, "depenses", id), data); alert("✅ Modifié !"); } else { data.date_ajout = new Date().toISOString(); await addDoc(collection(db, "depenses"), data); } window.resetFormDepense(); window.chargerDepenses(); } catch(e){alert(e.message);}
+};
+
+window.resetFormDepense = function() { 
+    document.getElementById('dep_edit_id').value = ""; document.getElementById('form-depense').reset(); 
+    document.getElementById('btn-action-depense').innerHTML="ENREGISTRER"; document.getElementById('btn-cancel-depense').classList.add('hidden'); 
+};
+
+window.preparerModification = function(id) { 
+    const d = cacheDepenses.find(x=>x.id===id); 
+    if(d) { 
+        document.getElementById('dep_edit_id').value=id; document.getElementById('dep_date_fac').value=d.date; document.getElementById('dep_ref').value=d.reference; document.getElementById('dep_fourn').value=d.fournisseur; document.getElementById('dep_montant').value=d.montant; document.getElementById('dep_cat').value=d.categorie; document.getElementById('dep_mode').value=d.mode; document.getElementById('dep_statut').value=d.statut;
+        document.getElementById('btn-action-depense').innerHTML="MODIFIER"; document.getElementById('btn-cancel-depense').classList.remove('hidden');
+    } 
+};
+
 window.supprimerDepense = async (id) => { if(confirm("Supprimer ?")) { await deleteDoc(doc(db,"depenses",id)); window.chargerDepenses(); } };
 window.supprimerDocument = async (id) => { if(confirm("Supprimer ?")) { await deleteDoc(doc(db,"factures_v2",id)); window.chargerListeFactures(); } };
 window.visualiserPDF = async (id) => { const d = await getDoc(doc(db,"factures_v2",id)); if(d.exists()) window.generatePDFFromData(d.data()); };
