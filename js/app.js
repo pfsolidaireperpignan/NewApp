@@ -436,34 +436,64 @@ window.supprimerDossier = async function(id) {
     }
 };
 
+/* REMPLACEZ TOUTE LA FONCTION window.chargerBaseClients PAR CECI */
+
 window.chargerBaseClients = async function() {
     const tbody = document.getElementById('clients-table-body');
     if(!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Chargement...</td></tr>';
+    
+    // Loader plus visible
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#3b82f6;"><i class="fas fa-circle-notch fa-spin"></i> Chargement des dossiers...</td></tr>';
+    
     try {
-        const q = query(collection(db, "dossiers_admin"), orderBy("date_creation", "desc"));
-        const snap = await getDocs(q);
+        // 1. On récupère la collection SANS trier côté serveur (C'est ça qui bloquait souvent)
+        // Cela évite les erreurs d'index Firebase et les temps morts
+        const snap = await getDocs(collection(db, "dossiers_admin"));
+        
+        if(snap.empty) { 
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Aucun dossier trouvé dans la base.</td></tr>'; 
+            return; 
+        }
+
+        // 2. On convertit en liste JavaScript pour trier nous-mêmes (Instantané)
+        let dossiers = [];
+        snap.forEach(doc => {
+            dossiers.push({ id: doc.id, ...doc.data() });
+        });
+
+        // 3. Tri du plus récent au plus ancien (Basé sur la date de création)
+        dossiers.sort((a, b) => {
+            const dateA = a.date_creation ? new Date(a.date_creation) : new Date(0);
+            const dateB = b.date_creation ? new Date(b.date_creation) : new Date(0);
+            return dateB - dateA; // Descendant
+        });
+
+        // 4. Affichage
         tbody.innerHTML = '';
-        if(snap.empty) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucun dossier.</td></tr>'; return; }
-        snap.forEach(docSnap => {
-            const data = docSnap.data();
-            const op = data.technique ? data.technique.type_operation : "Inhumation";
+        dossiers.forEach(data => {
+            const op = data.technique ? (data.technique.type_operation || "Inhumation") : "Inhumation";
             const nomD = (data.defunt?.civility || "") + " " + (data.defunt?.nom || '?');
             const nomM = (data.mandant?.civility || "") + " " + (data.mandant?.nom || '-');
+            const dateC = data.date_creation ? new Date(data.date_creation).toLocaleDateString() : "-";
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${new Date(data.date_creation).toLocaleDateString()}</td>
+                <td>${dateC}</td>
                 <td><strong>${nomD}</strong></td>
                 <td>${nomM}</td>
-                <td><span class="badge">${op}</span></td>
-                <td style="text-align:center; display:flex; justify-content:center; gap:5px;">
-                    <button class="btn-icon" onclick="window.chargerDossier('${docSnap.id}')" title="Modifier"><i class="fas fa-edit" style="color:#3b82f6;"></i></button>
+                <td><span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">${op}</span></td>
+                <td style="text-align:center; display:flex; justify-content:center; gap:8px;">
+                    <button class="btn-icon" onclick="window.chargerDossier('${data.id}')" title="Modifier"><i class="fas fa-edit" style="color:#3b82f6;"></i></button>
                     <button class="btn-icon" onclick="window.goToFacturation('${data.defunt?.nom || ''}')" title="Voir Factures"><i class="fas fa-file-invoice-dollar" style="color:#10b981;"></i></button>
-                    <button class="btn-icon" onclick="window.supprimerDossier('${docSnap.id}')" style="margin-left:5px;"><i class="fas fa-trash" style="color:#ef4444;"></i></button>
+                    <button class="btn-icon" onclick="window.supprimerDossier('${data.id}')" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
                 </td>`;
             tbody.appendChild(tr);
         });
-    } catch(e) { console.error(e); }
+
+    } catch(e) { 
+        console.error("Erreur chargement:", e); 
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center; padding:20px;">Erreur connexion: ${e.message}</td></tr>`; 
+    }
 };
 
 window.goToFacturation = function(nomDefunt) {
@@ -541,3 +571,4 @@ window.supprimerDocument = function(index) {
         window.afficherPiecesJointes();
     }
 };
+
