@@ -1,3 +1,4 @@
+/* js/index_logic.js */
 import { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from './config.js';
 import * as Utils from './utils.js';
 import * as PDF from './pdf_admin.js';
@@ -5,7 +6,7 @@ import * as DB from './db_manager.js';
 
 // 1. EXPOSER LES FONCTIONS (Pour que les boutons HTML marchent)
 window.genererPouvoir = PDF.genererPouvoir;
-// Ajoutez ici les autres fonctions PDF si nécessaire
+// (Vous pouvez ajouter ici les autres fonctions PDF : genererTransport, etc.)
 
 window.chargerBaseClients = DB.chargerBaseClients;
 window.chargerDossier = DB.chargerDossier;
@@ -15,20 +16,23 @@ window.chargerStock = DB.chargerStock;
 window.ajouterArticleStock = DB.ajouterArticle;
 window.supprimerArticle = DB.supprimerArticle;
 
-// 2. INTERFACE
+// 2. INTERFACE (Navigation)
 window.showSection = function(id) {
-    // Cache tout sauf le menu
-    const views = ['home', 'admin', 'base', 'stock'];
-    views.forEach(v => {
+    // Masquer toutes les sections
+    ['home', 'admin', 'base', 'stock'].forEach(v => {
         const el = document.getElementById('view-' + v);
         if(el) el.classList.add('hidden');
     });
     
-    // Affiche le bon
+    // Afficher la bonne
     const target = document.getElementById('view-' + id);
     if(target) target.classList.remove('hidden');
 
-    // Charge les données si besoin
+    // Mettre à jour le menu actif
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    // (Optionnel : ajouter la classe active au lien cliqué)
+
+    // Charger les données si nécessaire
     if(id === 'base') DB.chargerBaseClients();
     if(id === 'stock') DB.chargerStock();
 };
@@ -45,6 +49,7 @@ window.toggleSidebar = function() {
 };
 
 window.openAjoutStock = function() { document.getElementById('form-stock').classList.remove('hidden'); };
+
 window.switchAdminTab = function(tab) {
     document.getElementById('tab-content-identite').classList.add('hidden');
     document.getElementById('tab-content-technique').classList.add('hidden');
@@ -55,14 +60,14 @@ window.switchAdminTab = function(tab) {
     document.getElementById('tab-btn-' + tab).classList.add('active');
 };
 
-// 3. AUTH
+// 3. AUTHENTIFICATION
 window.loginFirebase = async function() {
     try { await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value); } 
     catch(e) { alert("Erreur login: " + e.message); }
 };
 window.logoutFirebase = async function() { await signOut(auth); window.location.reload(); };
 
-// 4. DÉMARRAGE
+// 4. DÉMARRAGE AUTOMATIQUE
 onAuthStateChanged(auth, (user) => {
     const loader = document.getElementById('app-loader');
     if(loader) loader.style.display = 'none';
@@ -70,9 +75,9 @@ onAuthStateChanged(auth, (user) => {
     if(user) {
         document.getElementById('login-screen').classList.add('hidden');
         Utils.chargerLogoBase64();
-        DB.chargerBaseClients();
+        DB.chargerBaseClients(); // Charge la liste dès le démarrage
         
-        // Date
+        // Horloge
         setInterval(() => {
             const now = new Date();
             if(document.getElementById('header-time')) document.getElementById('header-time').innerText = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
@@ -81,5 +86,4 @@ onAuthStateChanged(auth, (user) => {
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
     }
-
 });
