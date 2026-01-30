@@ -1,91 +1,184 @@
-/* style.css - DESIGN GLOBAL UNIFIÉ */
+/* Fichier : style.css - VERSION GOLD UNIFIÉE */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --primary: #10b981; --primary-dark: #059669;
-    --secondary: #3b82f6; --dark: #1e293b;
-    --light: #f8fafc; --gray: #64748b; --border: #e2e8f0;
-    --danger: #ef4444; --orange: #f97316; --purple: #8b5cf6;
+    --primary: #0f172a;       /* Bleu nuit (Menu) */
+    --accent: #2563eb;        /* Bleu vif (Actions) */
+    --success: #10b981;       /* Vert (Validation) */
+    --danger: #ef4444;        /* Rouge (Suppression) */
+    --bg-app: #f1f5f9;        /* Gris fond */
+    --text-main: #334155;
+    --sidebar-width: 260px;
 }
 
-body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; display: flex; height: 100vh; color: var(--dark); overflow: hidden; }
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    margin: 0; padding: 0;
+    display: flex; height: 100vh; overflow: hidden;
+}
+
 .hidden { display: none !important; }
 
-/* --- SIDEBAR (MENU) --- */
-.sidebar { width: 260px; background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.02); z-index: 5000; transition: all 0.3s ease; }
-.sidebar.collapsed { width: 80px; padding: 20px 10px; }
-.sidebar.collapsed .brand-text, .sidebar.collapsed .nav-text { display: none; }
-.sidebar.collapsed .brand { justify-content: center; }
-.sidebar.collapsed .nav-link { justify-content: center; padding: 15px; }
-.brand { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
-.nav-menu { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
-.nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 8px; text-decoration: none; color: var(--gray); font-weight: 600; transition: all 0.2s ease; white-space: nowrap; overflow: hidden; }
-.nav-link:hover, .nav-link.active { background: #ecfdf5; color: var(--primary-dark); transform: translateX(3px); }
-.sidebar.collapsed .nav-link:hover { transform: none; background: #ecfdf5; }
-.nav-link i { width: 25px; text-align: center; font-size: 1.1rem; }
+/* --- 1. BARRE LATÉRALE (SIDEBAR) --- */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--primary);
+    color: white;
+    display: flex; flex-direction: column;
+    padding: 20px;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
 
-/* --- CONTENU PRINCIPAL --- */
-.main-content { flex: 1; padding: 20px; overflow-y: auto; background: #f1f5f9; box-sizing: border-box; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap:15px; }
-h1 { font-size: 1.8rem; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+.brand {
+    font-size: 1.2rem; font-weight: 700; letter-spacing: 1px;
+    margin-bottom: 40px; color: white; display: flex; align-items: center; gap: 10px;
+}
 
-/* --- CARTES & BOITES --- */
-.card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
-.dashboard-header { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:15px; }
+.nav-menu { list-style: none; padding: 0; margin: 0; flex: 1; }
+.nav-item { margin-bottom: 5px; }
 
-/* --- BOUTONS --- */
-.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.btn:hover { filter: brightness(105%); transform: translateY(-1px); }
-.btn-green { background: var(--primary); color: white; }
-.btn-blue { background: var(--secondary); color: white; }
-.btn-red { background: var(--danger); color: white; }
-.btn-purple { background: var(--purple); color: white; }
-.btn-orange { background: var(--orange); color: white; }
-.btn-grey { background: var(--border); color: var(--dark); }
-.btn-icon { background: white; border: 1px solid var(--border); padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+.nav-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 15px;
+    color: #94a3b8; text-decoration: none;
+    border-radius: 8px; transition: all 0.2s;
+    font-weight: 500; cursor: pointer;
+}
+.nav-link:hover, .nav-link.active {
+    background: rgba(255,255,255,0.1);
+    color: white; transform: translateX(5px);
+}
+.nav-link i { width: 20px; text-align: center; }
 
-/* --- TABLEAUX --- */
-.compta-table, .history-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 8px; overflow: hidden; }
-th { background: #f8fafc; padding: 15px; text-align: left; color: var(--gray); font-size: 0.8rem; text-transform: uppercase; font-weight: 700; border-bottom: 2px solid var(--border); }
-td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
+/* --- 2. CONTENU PRINCIPAL --- */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px 40px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* En-têtes de page */
+.page-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 30px;
+}
+.page-header h1 { margin: 0; font-size: 1.8rem; color: #1e293b; }
+
+/* --- 3. DASHBOARD & CARTES --- */
+.stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px; margin-bottom: 30px;
+}
+.stat-card {
+    background: white; padding: 20px; border-radius: 12px;
+    border-left: 5px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;
+}
+.stat-label { font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; color: #64748b; }
+.stat-value { font-size: 1.8rem; font-weight: 800; }
+.stat-year { position: absolute; top: 10px; right: 10px; font-size: 0.8rem; font-weight: bold; opacity: 0.5; }
+
+/* Couleurs spécifiques Facturation */
+.card-ca { border-bottom: 4px solid #22c55e; color: #15803d; }
+.card-depense { border-bottom: 4px solid #ef4444; color: #b91c1c; }
+.card-result { border-bottom: 4px solid #3b82f6; color: #1e40af; background: linear-gradient(to bottom right, #eff6ff, white); }
+
+/* --- 4. NAVIGATION ACCUEIL (HUB) --- */
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+.action-card { 
+    background: white; padding: 25px; border-radius: 16px; 
+    border: 1px solid #e2e8f0; cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; flex-direction: column; justify-content: space-between; height: 160px; position: relative; overflow: hidden; 
+}
+.action-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1); }
+.card-icon-bg { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 15px; }
+.ac-blue .card-icon-bg { background: #eff6ff; color: #3b82f6; } .ac-blue:hover { border-bottom: 4px solid #3b82f6; }
+.ac-green .card-icon-bg { background: #ecfdf5; color: #10b981; } .ac-green:hover { border-bottom: 4px solid #10b981; }
+.ac-purple .card-icon-bg { background: #f5f3ff; color: #8b5cf6; } .ac-purple:hover { border-bottom: 4px solid #8b5cf6; }
+.ac-orange .card-icon-bg { background: #fff7ed; color: #ea580c; } .ac-orange:hover { border-bottom: 4px solid #ea580c; }
+.card-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 5px; }
+.card-desc { font-size: 0.85rem; color: #64748b; }
+.card-arrow { margin-top: auto; text-align: right; color: #64748b; font-size: 0.9rem; }
+
+/* --- 5. ÉLÉMENTS UI (Boutons, Inputs, Tabs) --- */
+.card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+.btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 0.9rem; }
+.btn:hover { filter: brightness(95%); transform: translateY(-1px); }
+.btn-green { background: #10b981; color: white; }
+.btn-blue { background: #3b82f6; color: white; }
+.btn-purple { background: #8b5cf6; color: white; }
+.btn-red { background: #ef4444; color: white; }
+.btn-orange { background: #f97316; color: white; }
+.btn-grey { background: #e2e8f0; color: #475569; }
+.btn-icon { background: white; border: 1px solid #e2e8f0; padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s; color: #64748b; }
+.btn-icon:hover { background: #f8fafc; color: var(--primary); border-color: var(--primary); }
+
+.tab-btn { padding: 10px 20px; background: #e2e8f0; border: none; border-radius: 20px; font-weight: bold; color: #64748b; cursor: pointer; transition: all 0.2s; }
+.tab-btn.active { background: #3b82f6; color: white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3); }
+.tab-btn.active-red { background: #ef4444; color: white; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3); }
+
+/* --- 6. TABLEAUX (Compta & History) --- */
+.compta-table, .history-table, .facture-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+th { background: #f8fafc; padding: 15px; text-align: left; color: #64748b; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; border-bottom: 2px solid #e2e8f0; cursor:pointer; }
+td { padding: 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 0.9rem; }
 tr:hover td { background: #f8fafc; }
 
-/* --- FORMULAIRES --- */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.span-2 { grid-column: span 2; }
-input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: #f8fafc; box-sizing: border-box; }
-input:focus, select:focus { outline: none; border-color: var(--primary); background: white; }
+/* Liens cliquables dans les tableaux */
+.link-doc, .link-client { cursor: pointer; font-weight: bold; text-decoration: underline; text-decoration-color: transparent; transition: all 0.2s; }
+.link-doc { color: #3b82f6; } .link-doc:hover { text-decoration-color: #3b82f6; background: #eff6ff; }
+.link-client { color: #10b981; } .link-client:hover { text-decoration-color: #10b981; background: #ecfdf5; }
 
-/* --- STATS (FACTURATION) --- */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
-.stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
-.stat-label { font-size: 0.85rem; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; color: var(--gray); }
-.stat-value { font-size: 1.8rem; font-weight: 800; }
-.card-ca { border-bottom: 4px solid var(--primary); color: #15803d; }
-.card-depense { border-bottom: 4px solid var(--danger); color: #b91c1c; }
-.card-result { border-bottom: 4px solid var(--secondary); color: #1e40af; }
-
-/* --- ÉDITEUR --- */
-.top-bar-editor { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-top: 4px solid #f59e0b; }
-.facture-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; } 
-.facture-table th { background: #e2e8f0; } .facture-table td { border-bottom: 1px solid #f1f5f9; padding: 8px; }
-.input-cell { border: 1px solid transparent; width: 100%; padding: 8px; background:transparent; } 
-.input-cell:focus { border: 1px solid var(--secondary); background: #eff6ff; outline: none; border-radius:4px; }
-.row-section { background: #fff7ed !important; border-left: 4px solid #f59e0b; }
-
-/* --- BADGES --- */
+/* --- 7. BADGES --- */
 .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }
 .badge-devis { background: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
 .badge-facture { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.badge-regle { background: #dcfce7; color: #166534; } .badge-attente { background: #fff7ed; color: #c2410c; }
+.badge-regle { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-attente { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; cursor: pointer; }
+.badge-depense { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+.badge-mode { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-weight: normal; }
 
-/* --- MOBILE --- */
+/* --- 8. ÉDITEUR FACTURE & FORMULAIRES --- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.span-2 { grid-column: span 2; }
+input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; background:white; }
+input:focus, select:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+
+.expense-form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-left: 5px solid #ef4444; }
+.grid-identity { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.box { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.input-clean { border: 1px solid #cbd5e1; border-radius: 5px; margin-bottom: 10px; }
+.input-cell { border: 1px solid transparent; width: 100%; padding: 8px; background:transparent; margin:0; }
+.input-cell:focus { border: 1px solid #3b82f6; background: #eff6ff; outline: none; border-radius:4px; }
+.row-section { background: #fff7ed !important; border-left: 4px solid #f59e0b; }
+.drag-handle { cursor: grab; color: #cbd5e1; text-align: center; }
+
+/* --- 9. MODALES --- */
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9000; }
+.modal-content { background: white; padding: 30px; border-radius: 10px; width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-btn { display: block; width: 100%; margin: 10px 0; padding: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; cursor: pointer; text-align: left; font-weight: bold; transition: all 0.2s; }
+.modal-btn:hover { background: #eff6ff; border-color: #3b82f6; color: #3b82f6; transform: translateX(5px); }
+
+/* --- 10. MOBILE --- */
 #mobile-menu-btn { display: none; }
 @media (max-width: 768px) {
-    .sidebar { position: fixed; top: 0; left: 0; height: 100vh; transform: translateX(-100%); width: 85%; }
+    .sidebar { position: fixed; top: 0; left: 0; height: 100vh; transform: translateX(-100%); z-index: 5000; display: flex; width: 85%; }
     .sidebar.mobile-open { transform: translateX(0); }
-    #mobile-menu-btn { display: flex !important; position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px; background: var(--primary); color: white; border-radius: 50%; border: none; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 6000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    .stats-grid, .form-grid { grid-template-columns: 1fr; }
-    .span-2 { grid-column: span 1; }
     #btn-toggle-menu { display: none !important; }
+    #mobile-menu-btn { display: flex !important; position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px; background: #10b981; color: white; border-radius: 50%; border: none; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 6000; cursor: pointer; }
+    .main-content { padding: 10px; width: 100%; box-sizing: border-box; }
+    .dashboard-grid, .stats-grid, .form-grid, .grid-identity { grid-template-columns: 1fr !important; gap: 10px; }
+    .span-2 { grid-column: span 1 !important; }
+    .compta-table, .facture-table { display: block; overflow-x: auto; white-space: nowrap; }
+    .expense-form > div { flex-direction: column; }
+    .page-header, .dashboard-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .btn { width: 100%; justify-content: center; margin-bottom: 5px; }
 }
