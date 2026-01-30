@@ -3,298 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PF ERP - Administration</title>
-    <link rel="stylesheet" href="style.css">
-    
+    <title>PFS ERP </title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <img id="logo-source" src="Logo.png" style="display: none;" crossorigin="anonymous">
-
+    
     <datalist id="villes_list">
         <option value="Perpignan"><option value="Thuir"><option value="Toulouse"><option value="Montpellier">
-        <option value="Casablanca"><option value="Rabat"><option value="Alger"><option value="Oran">
     </datalist>
     <datalist id="liens_list"><option value="Fils"><option value="Fille"><option value="Époux"><option value="Épouse"></datalist>
 
-    <div id="app-loader"><i class="fas fa-circle-notch fa-spin" style="font-size:3rem; color:#10b981;"></i></div>
+    <div id="app-loader" style="position:fixed; inset:0; background:white; z-index:9999; display:flex; justify-content:center; align-items:center;">
+        <i class="fas fa-circle-notch fa-spin" style="font-size:3rem; color:#10b981;"></i>
+    </div>
 
-    <div id="login-screen" class="hidden">
-        <div class="card" style="width:100%; max-width:400px; text-align:center; padding:40px;">
-            <img src="Logo.png" alt="Logo" style="width:100px; margin-bottom:20px;">
-            <h2 style="margin-bottom:10px;">PF SOLIDAIRE</h2>
-            <input type="email" id="login-email" placeholder="Email" style="margin-bottom:15px; width:100%;">
-            <input type="password" id="login-password" placeholder="Mot de passe" style="margin-bottom:25px; width:100%;">
-            <button onclick="window.loginFirebase()" class="btn btn-green" style="width:100%;">SE CONNECTER</button>
+    <div id="login-screen" class="hidden" style="position:fixed; inset:0; z-index:9000; display:flex; justify-content:center; align-items:center; background:#f1f5f9;">
+        <div class="card" style="width:100%; max-width:400px; text-align:center; padding:50px; background:white; border-radius:10px;">
+            <img src="Logo.png" alt="Logo" style="width:120px; margin-bottom:20px;">
+            <h2 style="margin-bottom:10px; color:#1e293b;">PF SOLIDAIRE</h2>
+            <input type="email" id="login-email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:15px;">
+            <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%; padding:10px; margin-bottom:25px;">
+            <button id="btn-login" class="btn btn-green" style="width:100%; padding:10px; cursor:pointer; background:#10b981; color:white; border:none; border-radius:5px;">SE CONNECTER</button>
         </div>
     </div>
 
     <nav class="sidebar">
         <div class="brand">
-            <i class="fas fa-dove"></i> <span class="brand-text">PF ERP</span>
+            <i class="fas fa-dove"></i> <span class="brand-text">PF ERP</span> 
+            <button id="btn-toggle-menu" onclick="window.toggleSidebar()" style="margin-left:auto; border:none; background:transparent; cursor:pointer;">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
         <ul class="nav-menu">
-            <li><a onclick="window.showSection('home')" class="nav-link active"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
-            <li><a onclick="window.showSection('admin')" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
-            <li><a onclick="window.showSection('base')" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
-            <li><a onclick="window.showSection('stock')" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
-            <li><a href="facturation_v2.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
-            <li><a href="dossier_complet.html" class="nav-link" style="color:#f59e0b;"><i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span></a></li>
-            <li style="margin-top:auto;"><a onclick="window.logoutFirebase()" class="nav-link" style="color:#ef4444;"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
+            <li class="nav-item"><a onclick="window.showSection('home')" class="nav-link active"><i class="fas fa-home"></i> <span class="nav-text">Accueil</span></a></li>
+            <li class="nav-item"><a onclick="window.showSection('admin')" class="nav-link"><i class="fas fa-folder-open"></i> <span class="nav-text">Dossier Admin</span></a></li>
+            <li class="nav-item"><a onclick="window.showSection('base')" class="nav-link"><i class="fas fa-users"></i> <span class="nav-text">Base Clients</span></a></li>
+            <li class="nav-item"><a onclick="window.showSection('stock')" class="nav-link"><i class="fas fa-boxes"></i> <span class="nav-text">Gestion Stock</span></a></li>
+            <li class="nav-item"><a href="facturation_v2.html" class="nav-link"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Facturation</span></a></li>
+            <li class="nav-item"><a href="dossier_complet.html" class="nav-link" style="color:#ea580c;"><i class="fas fa-layer-group"></i> <span class="nav-text">Atelier Dossier</span></a></li>
+            <li class="nav-item" style="margin-top:auto;"><a id="btn-logout" class="nav-link" style="color:#ef4444;"><i class="fas fa-power-off"></i> <span class="nav-text">Déconnexion</span></a></li>
         </ul>
     </nav>
 
-    <main class="main-content hidden" id="main-content">
-        
+    <main class="main-content">
         <div id="view-home">
-            <div class="page-header">
-                <h1>Tableau de Bord</h1>
-                <div class="card" style="padding:10px 20px; display:flex; gap:20px; align-items:center; margin:0;">
-                    <div id="header-time" style="font-weight:bold;">--:--</div>
-                    <div id="header-date" style="color:#64748b;">Chargement...</div>
-                </div>
+            <div class="welcome-banner">
+                <div class="welcome-text"><h2>Bonjour</h2><p>Espace de gestion PF Solidaire.</p></div>
             </div>
             <div class="dashboard-grid">
                 <div class="action-card ac-blue" onclick="window.showSection('admin')">
-                    <div class="card-icon-bg"><i class="fas fa-plus"></i></div>
-                    <h3>Nouveau Dossier</h3>
+                    <div class="card-icon-bg"><i class="fas fa-user-plus"></i></div><h3>Nouveau Dossier</h3>
                 </div>
                 <div class="action-card ac-orange" onclick="window.showSection('base')">
-                    <div class="card-icon-bg"><i class="fas fa-users"></i></div>
-                    <h3>Base Clients</h3>
+                    <div class="card-icon-bg"><i class="fas fa-users"></i></div><h3>Base Clients</h3>
                 </div>
                 <div class="action-card ac-green" onclick="window.showSection('stock')">
-                    <div class="card-icon-bg"><i class="fas fa-boxes"></i></div>
-                    <h3>Gestion Stock</h3>
+                    <div class="card-icon-bg"><i class="fas fa-boxes"></i></div><h3>Stocks</h3>
                 </div>
-                <div class="action-card ac-purple" onclick="location.href='facturation_v2.html'">
-                    <div class="card-icon-bg"><i class="fas fa-file-invoice"></i></div>
-                    <h3>Facturation</h3>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-admin" class="hidden">
-            <div class="page-header">
-                <h1>Dossier Administratif</h1>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn btn-red" onclick="window.viderFormulaire()"><i class="fas fa-trash"></i> NOUVEAU</button>
-                    <button class="btn btn-green" id="btn-save-bdd" onclick="window.sauvegarderDossier()"><i class="fas fa-save"></i> ENREGISTRER</button>
-                </div>
-            </div>
-
-            <div class="form-grid" style="grid-template-columns: 2fr 1fr; align-items:start;">
-                <div>
-                    <div class="tabs-container">
-                        <button class="tab-btn active" id="tab-btn-identite" onclick="window.switchAdminTab('identite')">1. IDENTITÉ</button>
-                        <button class="tab-btn" id="tab-btn-technique" onclick="window.switchAdminTab('technique')">2. TECHNIQUE</button>
-                    </div>
-
-                    <div id="tab-content-identite">
-                        <input type="hidden" id="dossier_id">
-                        <div class="card">
-                            <h3>MANDANT</h3>
-                            <div class="form-grid">
-                                <div class="span-2" style="display:flex; gap:10px;">
-                                    <select id="civilite_mandant" style="width:80px;"><option>M.</option><option>Mme</option></select>
-                                    <input id="soussigne" placeholder="Nom et Prénom" style="flex:1;">
-                                </div>
-                                <div><label>Lien</label><input id="lien" list="liens_list"></div>
-                                <div class="span-2"><label>Adresse</label><input id="demeurant" list="villes_list"></div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <h3>DÉFUNT</h3>
-                            <div class="form-grid">
-                                <div style="display:flex; gap:10px;">
-                                    <select id="civilite_defunt" style="width:80px;"><option>M.</option><option>Mme</option></select>
-                                    <input id="nom" placeholder="NOM" style="flex:1;">
-                                </div>
-                                <input id="prenom" placeholder="Prénom">
-                                <div><label>Nom Jeune Fille</label><input id="nom_jeune_fille"></div>
-                                <div><label>Date Décès</label><input type="date" id="date_deces"></div>
-                                <div><label>Lieu Décès</label><input id="lieu_deces" list="villes_list"></div>
-                                <div><label>Date Naissance</label><input type="date" id="date_naiss"></div>
-                                <div><label>Lieu Naissance</label><input id="lieu_naiss" list="villes_list"></div>
-                                <div class="span-2"><label>Domicile</label><input id="adresse_fr" list="villes_list"></div>
-                                <div><label>Nationalité</label><input id="nationalite" value="Française"></div>
-                                <div><label>Profession</label><select id="prof_type"><option>Retraité(e)</option><option>Sans profession</option><option>Active</option></select></div>
-                                <div class="span-2"><label>Si Active (Libellé)</label><input id="profession_libelle"></div>
-                                <div class="span-2" style="border-top:1px solid #e2e8f0; margin-top:10px; padding-top:10px;"><label>Filiation & Situation</label></div>
-                                <div><label>Père</label><input id="pere"></div>
-                                <div><label>Mère</label><input id="mere"></div>
-                                <div><label>Situation</label><select id="matrimoniale"><option>Marié(e)</option><option>Veuf(ve)</option><option>Célibataire</option><option>Divorcé(e)</option></select></div>
-                                <div><label>Conjoint(e)</label><input id="conjoint"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="tab-content-technique" class="hidden">
-                        <div class="card" style="border-top: 4px solid #f59e0b;">
-                            <h3>OPÉRATION</h3>
-                            <select id="prestation" onchange="window.toggleSections()" style="width:100%; padding:15px; font-weight:bold;">
-                                <option value="Inhumation">⚰️ INHUMATION</option>
-                                <option value="Crémation">🔥 CRÉMATION</option>
-                                <option value="Rapatriement">✈️ RAPATRIEMENT</option>
-                                <option value="Exhumation">⛏️ EXHUMATION</option>
-                            </select>
-                        </div>
-                        <div class="card">
-                            <h3>LOGISTIQUE</h3>
-                            <div class="form-grid">
-                                <div><label>Mise en Bière (Lieu)</label><input id="lieu_mise_biere" list="villes_list"></div>
-                                <div><label>Date Fermeture</label><input type="date" id="date_fermeture"></div>
-                                <div class="span-2"><label>Type Présence</label><select id="type_presence_select" onchange="window.togglePolice()"><option value="famille">Famille</option><option value="police">Police</option></select></div>
-                                <div id="police_fields" class="span-2 form-grid hidden" style="background:#fee2e2; padding:10px; border-radius:8px;">
-                                    <div><label>Nom & Grade</label><input id="p_nom_grade"></div>
-                                    <div><label>Commissariat</label><input id="p_commissariat"></div>
-                                </div>
-                                <div id="famille_fields" class="span-2 form-grid" style="background:#dcfce7; padding:10px; border-radius:8px;">
-                                    <div class="span-2"><input type="checkbox" id="copy_mandant" onchange="window.copierMandant()"> <label style="display:inline;">C'est le mandant</label></div>
-                                    <div><label>Nom Témoin</label><input id="f_nom_prenom"></div>
-                                    <div><label>Lien</label><input id="f_lien" list="liens_list"></div>
-                                </div>
-                                <div class="span-2" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px;">
-                                    <label style="font-weight:bold;">Transport AVANT Mise en Bière</label>
-                                    <div class="form-grid">
-                                        <div><label>Lieu Départ</label><input id="av_lieu_depart" list="villes_list"></div>
-                                        <div><label>Lieu Arrivée</label><input id="av_lieu_arrivee" list="villes_list"></div>
-                                        <div><label>Date Dép.</label><input type="date" id="av_date_dep"></div>
-                                        <div><label>Heure Dép.</label><input type="time" id="av_heure_dep"></div>
-                                        <div><label>Date Arr.</label><input type="date" id="av_date_arr"></div>
-                                        <div><label>Heure Arr.</label><input type="time" id="av_heure_arr"></div>
-                                    </div>
-                                </div>
-                                <div class="span-2" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-top:10px;">
-                                    <label style="font-weight:bold;">Transport APRÈS Mise en Bière</label>
-                                    <div class="form-grid">
-                                        <div><label>Lieu Départ</label><input id="ap_lieu_depart" list="villes_list"></div>
-                                        <div><label>Lieu Arrivée</label><input id="ap_lieu_arrivee" list="villes_list"></div>
-                                        <div><label>Date Dép.</label><input type="date" id="ap_date_dep"></div>
-                                        <div><label>Heure Dép.</label><input type="time" id="ap_heure_dep"></div>
-                                        <div><label>Date Arr.</label><input type="date" id="ap_date_arr"></div>
-                                        <div><label>Heure Arr.</label><input type="time" id="ap_heure_arr"></div>
-                                    </div>
-                                </div>
-                                <div><label>Fait à</label><input id="faita" value="PERPIGNAN"></div>
-                                <div><label>Date Signature</label><input type="date" id="dateSignature"></div>
-                            </div>
-                        </div>
-                        <div id="bloc_inhumation" class="card specific-block">
-                            <h3>INHUMATION</h3>
-                            <div class="form-grid">
-                                <div><label>Cimetière</label><input id="cimetiere_nom" list="villes_list"></div>
-                                <div><label>N° Concession</label><input id="num_concession"></div>
-                                <div><label>Titulaire</label><input id="titulaire_concession"></div>
-                                <div><label>Type</label><select id="type_sepulture"><option>Caveau</option><option>Pleine Terre</option></select></div>
-                                <div><label>Date Inhum.</label><input type="date" id="date_inhumation"></div>
-                                <div><label>Heure</label><input type="time" id="heure_inhumation"></div>
-                            </div>
-                        </div>
-                        <div id="bloc_cremation" class="card specific-block hidden">
-                            <h3>CRÉMATION</h3>
-                            <div class="form-grid">
-                                <div><label>Crématorium</label><input id="crematorium_nom"></div>
-                                <div><label>Date Crémation</label><input type="date" id="date_cremation"></div>
-                                <div><label>Heure</label><input type="time" id="heure_cremation"></div>
-                                <div><label>Cendres</label><input id="destination_cendres"></div>
-                            </div>
-                        </div>
-                        <div id="bloc_rapatriement" class="card specific-block hidden">
-                            <h3>RAPATRIEMENT</h3>
-                            <div class="form-grid">
-                                <div><label>Pays</label><input id="rap_pays" list="villes_list"></div>
-                                <div><label>Ville</label><input id="rap_ville" list="villes_list"></div>
-                                <div><label>LTA</label><input id="rap_lta"></div>
-                                <div><label>Véhicule</label><input id="rap_immat" value="DA-081-ZQ"></div>
-                                <div class="span-2" style="background:#f0f9ff; padding:10px; border-radius:8px;">
-                                    <label>VOL 1</label>
-                                    <div class="form-grid">
-                                        <div><label>N° Vol</label><input id="vol1_num"></div>
-                                        <div><label>Départ (Lieu/H)</label><input id="vol1_dep_aero"><input id="vol1_dep_time" type="text" placeholder="Heure"></div>
-                                        <div><label>Arrivée (Lieu/H)</label><input id="vol1_arr_aero"><input id="vol1_arr_time" type="text" placeholder="Heure"></div>
-                                    </div>
-                                </div>
-                                <div class="span-2"><input type="checkbox" id="check_vol2" onchange="window.toggleVol2()"> <label style="display:inline;">Vol 2 (Escale)</label></div>
-                                <div id="bloc_vol2" class="span-2 hidden" style="background:#f0f9ff; padding:10px; border-radius:8px;">
-                                    <label>VOL 2</label>
-                                    <div class="form-grid">
-                                        <div><label>N° Vol</label><input id="vol2_num"></div>
-                                        <div><label>Départ</label><input id="vol2_dep_aero"><input id="vol2_dep_time" type="text"></div>
-                                        <div><label>Arrivée</label><input id="vol2_arr_aero"><input id="vol2_arr_time" type="text"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card" style="position:sticky; top:20px; border-top: 4px solid var(--purple);">
-                    <h3>DOCUMENTS PDF</h3>
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-                        <button class="btn btn-purple" onclick="window.genererPouvoir()">Pouvoir</button>
-                        <button class="btn btn-purple" onclick="window.genererDeclaration()">Déclaration Décès</button>
-                        <button class="btn btn-purple" onclick="window.genererFermeture()">PV Fermeture</button>
-                        <button class="btn btn-purple" onclick="window.genererDemandeFermetureMairie()">Fermeture Mairie</button>
-                        <div style="display:flex; gap:5px;">
-                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererTransport('avant')">Transport AVANT</button>
-                            <button class="btn btn-purple" style="flex:1; font-size:0.8rem;" onclick="window.genererTransport('apres')">Transport APRÈS</button>
-                        </div>
-                        <div id="btn_inhumation"><button class="btn btn-blue" onclick="window.genererDemandeInhumation()" style="width:100%;">Demande Inhumation</button></div>
-                        <div id="btn_cremation" class="hidden"><button class="btn btn-blue" onclick="window.genererDemandeCremation()" style="width:100%;">Demande Crémation</button></div>
-                        <div id="btn_rapatriement" class="hidden"><button class="btn btn-red" onclick="window.genererDemandeRapatriement()" style="width:100%;">Rapatriement Préf.</button></div>
-                        <button class="btn btn-blue" onclick="window.genererDemandeOuverture()">Ouverture Sépulture</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-base" class="hidden">
-            <div class="page-header">
-                <h1>Base Clients</h1>
-                <button class="btn btn-blue" onclick="window.chargerBaseClients()"><i class="fas fa-sync"></i> ACTUALISER</button>
-            </div>
-            <div class="card" style="padding:0; overflow:hidden;">
-                <table class="history-table">
-                    <thead><tr><th>Date</th><th>Défunt</th><th>Mandant</th><th>Type</th><th>Actions</th></tr></thead>
-                    <tbody id="clients-table-body"></tbody>
-                </table>
             </div>
         </div>
 
         <div id="view-stock" class="hidden">
-            <div class="page-header">
-                <h1>Gestion Stock</h1>
-                <button class="btn btn-green" onclick="window.openAjoutStock()"><i class="fas fa-plus"></i> AJOUTER</button>
-            </div>
-            
-            <div id="form-stock" class="card hidden" style="border:2px solid var(--primary);">
-                <h3>Nouvel Article</h3>
+            <div class="page-header"><h1>Stocks</h1><button class="btn btn-green" onclick="window.openAjoutStock()">AJOUTER</button></div>
+            <div id="form-stock" class="card hidden">
+                <h3>Ajouter Article</h3>
                 <div class="form-grid">
-                    <div><label>Nom</label><input id="st_nom"></div>
-                    <div><label>Catégorie</label><select id="st_cat"><option>Cercueil</option><option>Urne</option><option>Capiton</option><option>Autre</option></select></div>
-                    <div><label>Quantité</label><input type="number" id="st_qte" value="1"></div>
-                    <div><label>Prix Achat</label><input type="number" id="st_pa"></div>
-                    <div><label>Prix Vente</label><input type="number" id="st_pv"></div>
-                    <div><label>Fournisseur</label><input id="st_fourn"></div>
+                    <input id="st_nom" placeholder="Nom">
+                    <select id="st_cat"><option>Cercueil</option><option>Urne</option></select>
+                    <input id="st_qte" type="number" value="1">
+                    <input id="st_fourn" placeholder="Fournisseur">
                 </div>
-                <div style="margin-top:15px; display:flex; gap:10px;">
-                    <button class="btn btn-green" onclick="window.ajouterArticleStock()">VALIDER</button>
-                    <button class="btn btn-red" onclick="document.getElementById('form-stock').classList.add('hidden')">ANNULER</button>
-                </div>
+                <button class="btn btn-green" onclick="window.ajouterArticleStock()">Valider</button>
             </div>
-
-            <div class="card" style="padding:0; overflow:hidden;">
-                <table class="history-table">
-                    <thead><tr><th>Article</th><th>Catégorie</th><th>Prix A/V</th><th>Stock</th><th>Action</th></tr></thead>
-                    <tbody id="stock-table-body"></tbody>
-                </table>
-            </div>
+            <div class="card"><table class="history-table"><thead><tr><th>Nom</th><th>Catégorie</th><th>Stock</th><th>Action</th></tr></thead><tbody id="stock-table-body"></tbody></table></div>
         </div>
 
+        <div id="view-base" class="hidden">
+            <div class="page-header"><h1>Clients</h1><button class="btn btn-blue" onclick="window.chargerBaseClients()">Actualiser</button></div>
+            <div class="card"><table class="history-table"><tbody id="clients-table-body"></tbody></table></div>
+        </div>
+
+        <div id="view-admin" class="hidden">
+            <div class="page-header"><h1>Dossier</h1><button class="btn btn-green" id="btn-save-bdd">ENREGISTRER</button></div>
+            
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="window.switchAdminTab('identite')" id="tab-btn-identite">1. IDENTITÉ</button>
+                <button class="tab-btn" onclick="window.switchAdminTab('technique')" id="tab-btn-technique">2. TECHNIQUE</button>
+            </div>
+
+            <div id="tab-content-identite">
+                <input type="hidden" id="dossier_id">
+                <div class="card">
+                    <h3>DÉFUNT</h3>
+                    <div class="form-grid">
+                        <select id="civilite_defunt"><option>M.</option><option>Mme</option></select>
+                        <input id="nom" placeholder="Nom"> <input id="prenom" placeholder="Prénom">
+                        <input type="date" id="date_deces"> <input id="lieu_deces" placeholder="Lieu Décès">
+                        <input type="date" id="date_naiss"> <input id="lieu_naiss" placeholder="Lieu Naissance">
+                        <input id="adresse_fr" placeholder="Domicile"> <input id="nationalite" value="Française">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>MANDANT</h3>
+                    <div class="form-grid">
+                        <select id="civilite_mandant"><option>M.</option><option>Mme</option></select>
+                        <input id="soussigne" placeholder="Nom Prénom">
+                        <input id="lien" placeholder="Lien"> <input id="demeurant" placeholder="Adresse">
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-technique" class="hidden">
+                <div class="card">
+                    <h3>OPÉRATION</h3>
+                    <select id="prestation" onchange="window.toggleSections()" style="width:100%; padding:10px;"><option value="Inhumation">INHUMATION</option><option value="Crémation">CRÉMATION</option><option value="Rapatriement">RAPATRIEMENT</option></select>
+                    
+                    <div class="form-grid" style="margin-top:15px;">
+                        <input id="lieu_mise_biere" placeholder="Lieu Mise en Bière">
+                        <input type="date" id="date_fermeture">
+                        <select id="type_presence_select" onchange="window.togglePolice()"><option value="famille">Famille</option><option value="police">Police</option></select>
+                        
+                        <div id="police_fields" class="hidden"><input id="p_nom_grade" placeholder="Grade Police"><input id="p_commissariat" placeholder="Commissariat"></div>
+                        <div id="famille_fields"><input id="f_nom_prenom" placeholder="Témoin Famille"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:4px solid #8b5cf6;">
+                    <h3>DOCUMENTS</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                        <button class="btn btn-purple" onclick="window.genererPouvoir()">Pouvoir</button>
+                        <button class="btn btn-purple" onclick="window.genererDeclaration()">Déclaration Décès</button>
+                        <button class="btn btn-purple" onclick="window.genererFermeture()">PV Fermeture</button>
+                        <button class="btn btn-blue" id="btn_inhumation" onclick="window.genererDemandeInhumation()">Demande Inhumation</button>
+                        <button class="btn btn-blue hidden" id="btn_cremation" onclick="window.genererDemandeCremation()">Demande Crémation</button>
+                        <button class="btn btn-red hidden" id="btn_rapatriement" onclick="window.genererDemandeRapatriement()">Rapatriement</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <button id="mobile-menu-btn" onclick="window.toggleSidebar()">
