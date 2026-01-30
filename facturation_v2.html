@@ -97,7 +97,7 @@
             <div class="page-header">
                 <button class="btn btn-icon" onclick="window.showDashboard()"><i class="fas fa-arrow-left"></i> Retour</button>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-blue" id="btn-pdf"><i class="fas fa-print"></i> PDF</button>
+                    <button class="btn btn-blue" onclick="window.imprimerDocumentActuel()"><i class="fas fa-print"></i> PDF</button>
                     <button class="btn btn-green" onclick="window.sauvegarderDocument()"><i class="fas fa-save"></i> SAUVEGARDER</button>
                 </div>
             </div>
@@ -154,21 +154,5 @@
 
     <script type="module" src="js/facturation.js"></script>
     
-    <script>
-        document.getElementById('btn-pdf').addEventListener('click', () => {
-            const lignes = [];
-            document.querySelectorAll('#tbody_lignes tr').forEach(tr => {
-                lignes.push({ desc: tr.querySelector('.val-desc').value, type: 'item', prix: parseFloat(tr.querySelector('.val-prix').value)||0, cat: tr.querySelector('.val-type').value });
-            });
-            const data = {
-                client: { civility: document.getElementById('client_civility').value, nom: document.getElementById('client_nom').value, adresse: document.getElementById('client_adresse').value },
-                defunt: { civility: document.getElementById('defunt_civility').value, nom: document.getElementById('defunt_nom').value },
-                info: { type: document.getElementById('doc_type').value, date: document.getElementById('doc_date').value, numero: document.getElementById('doc_numero').value, total: parseFloat(document.getElementById('total_display').innerText) },
-                lignes: lignes, paiements: [] // Paiements gérés par variable globale dans le module
-            };
-            // On appelle la fonction exposée par le module
-            if(window.generatePDFFromData) window.generatePDFFromData(data, true);
-        });
-    </script>
 </body>
 </html>
