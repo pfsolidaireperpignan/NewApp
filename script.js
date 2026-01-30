@@ -1,6 +1,6 @@
-/* script.js - DOIT ÊTRE À LA RACINE DU SITE */
+/* script.js (RACINE) */
 
-// 1. IMPORT DEPUIS LE DOSSIER JS
+// 1. IMPORTS DEPUIS LE DOSSIER JS/
 import { auth } from './js/config.js'; 
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import * as Utils from './js/utils.js';
@@ -8,7 +8,8 @@ import * as PDF from './js/pdf_admin.js';
 import * as Clients from './js/client_manager.js';
 import * as Stock from './js/stock_manager.js';
 
-// 2. EXPOSITION GLOBALE (Pour que les boutons HTML marchent)
+// 2. EXPOSITION GLOBALE DES FONCTIONS
+// PDF
 window.genererPouvoir = PDF.genererPouvoir;
 window.genererDeclaration = PDF.genererDeclaration;
 window.genererDemandeInhumation = PDF.genererDemandeInhumation;
@@ -19,26 +20,28 @@ window.genererDemandeOuverture = PDF.genererDemandeOuverture;
 window.genererFermeture = PDF.genererFermeture;
 window.genererTransport = PDF.genererTransport;
 
+// CLIENTS
 window.ouvrirDossier = ouvrirDossier;
 window.supprimerDossier = Clients.supprimerDossier;
 window.sauvegarderDossier = Clients.sauvegarderDossier;
 window.chargerBaseClients = Clients.chargerBaseClients; 
 window.chargerDossier = Clients.chargerDossier;
 
+// STOCKS
 window.ajouterArticleStock = Stock.ajouterArticle;
 window.supprimerArticle = Stock.supprimerArticle;
 window.mouvementStock = Stock.mouvementStock;
 window.chargerStock = Stock.chargerStock; 
-window.updateStock = Stock.mouvementStock; // Alias pour compatibilité
+window.updateStock = Stock.mouvementStock; 
 
-// 3. FONCTIONS UI
+// UI
 window.openAjoutStock = function() {
     document.getElementById('form-stock').classList.remove('hidden');
     document.getElementById('st_nom').value = "";
     document.getElementById('st_qte').value = "1";
 };
 
-// Gestion Auth
+// 3. AUTHENTIFICATION
 const loginScreen = document.getElementById('login-screen');
 const appLoader = document.getElementById('app-loader');
 
@@ -46,10 +49,18 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         if(loginScreen) loginScreen.classList.add('hidden');
         if(appLoader) appLoader.style.display = 'none';
-        
         Utils.chargerLogoBase64();
         Clients.chargerBaseClients();
         Stock.chargerStock();
+        
+        // Date Heure
+        setInterval(() => {
+            const now = new Date();
+            const elTime = document.getElementById('header-time');
+            const elDate = document.getElementById('header-date');
+            if(elTime) elTime.innerText = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+            if(elDate) elDate.innerText = now.toLocaleDateString('fr-FR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        }, 1000);
     } else {
         if(loginScreen) loginScreen.classList.remove('hidden');
         if(appLoader) appLoader.style.display = 'none';
@@ -66,7 +77,7 @@ window.logoutFirebase = async function() {
     if(confirm("Se déconnecter ?")) { await signOut(auth); window.location.reload(); }
 };
 
-// Navigation
+// 4. NAVIGATION
 window.showSection = function(sectionId) {
     ['home', 'admin', 'base', 'stock'].forEach(id => {
         const el = document.getElementById('view-' + id);
@@ -88,24 +99,37 @@ window.switchAdminTab = function(tabName) {
     document.getElementById('tab-btn-' + tabName).classList.add('active');
 };
 
+// 5. LOGIQUE FORMULAIRE ADMIN
 window.toggleSections = function() {
     const type = document.getElementById('prestation').value;
-    document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden')); // Si vous utilisez cette classe
+    document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden')); 
     document.getElementById('btn_inhumation').classList.add('hidden');
     document.getElementById('btn_cremation').classList.add('hidden');
     document.getElementById('btn_rapatriement').classList.add('hidden');
     
-    if(type === 'Inhumation') document.getElementById('btn_inhumation').classList.remove('hidden');
-    if(type === 'Crémation') document.getElementById('btn_cremation').classList.remove('hidden');
-    if(type === 'Rapatriement') document.getElementById('btn_rapatriement').classList.remove('hidden');
+    if(type === 'Inhumation') {
+        document.getElementById('bloc_inhumation').classList.remove('hidden');
+        document.getElementById('btn_inhumation').classList.remove('hidden');
+    }
+    if(type === 'Crémation') {
+        document.getElementById('bloc_cremation').classList.remove('hidden');
+        document.getElementById('btn_cremation').classList.remove('hidden');
+    }
+    if(type === 'Rapatriement') {
+        document.getElementById('bloc_rapatriement').classList.remove('hidden');
+        document.getElementById('btn_rapatriement').classList.remove('hidden');
+    }
 };
 
 window.togglePolice = function() {
     const val = document.getElementById('type_presence_select').value;
-    const police = document.getElementById('police_fields');
-    const famille = document.getElementById('famille_fields');
-    if(police) police.classList.toggle('hidden', val !== 'police');
-    if(famille) famille.classList.toggle('hidden', val === 'police');
+    document.getElementById('police_fields').classList.toggle('hidden', val !== 'police');
+    document.getElementById('famille_fields').classList.toggle('hidden', val === 'police');
+};
+
+window.toggleVol2 = function() {
+    const chk = document.getElementById('check_vol2');
+    if(chk) document.getElementById('bloc_vol2').classList.toggle('hidden', !chk.checked);
 };
 
 window.viderFormulaire = function() {
@@ -122,7 +146,7 @@ function ouvrirDossier(id = null) {
     window.showSection('admin');
 }
 
-// LA FONCTION DU MENU MOBILE (CORRIGÉE)
+// 6. MENU MOBILE (FONCTION CORRIGÉE)
 window.toggleSidebar = function() {
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('mobile-overlay');
