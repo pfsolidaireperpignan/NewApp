@@ -1,4 +1,4 @@
-/* js/facturation.js - AVEC DATES DÉFUNT DANS PDF */
+/* js/facturation.js - LOGIQUE FACTURATION (V3 FINALE) */
 import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, getDoc, auth } from "./config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { logoBase64, chargerLogoBase64 } from "./utils.js"; 
@@ -11,7 +11,9 @@ onAuthStateChanged(auth, (user) => {
         window.chargerListeFactures();
         window.chargerDepenses();
         chargerSuggestionsClients();
-        if(document.getElementById('dep_date_fac')) document.getElementById('dep_date_fac').valueAsDate = new Date();
+        // Initialiser date du jour
+        const dateFac = document.getElementById('dep_date_fac');
+        if(dateFac) dateFac.valueAsDate = new Date();
     }
 });
 
@@ -23,18 +25,17 @@ let global_Depenses = 0;
 const currentYear = new Date().getFullYear();
 let currentSort = { col: 'date', order: 'desc' };
 
-// --- PDF ENGINE (MODIFIÉ) ---
+// --- PDF ENGINE (VOTRE VERSION EXACTE : VERTE + DATES) ---
 window.generatePDFFromData = function(data, saveMode = false) {
     if(!logoBase64) chargerLogoBase64();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // 1. Logo
+    // 1. Logo & Header
     if (logoBase64) { try { doc.addImage(logoBase64,'PNG', 15, 10, 25, 25); } catch(e){} }
     
     const greenColor = [34, 155, 76]; // Vert Solidaire
     
-    // Header
     doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...greenColor);
     doc.text("POMPES FUNEBRES", 15, 40); doc.text("SOLIDAIRE PERPIGNAN", 15, 45);
     doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80);
@@ -57,20 +58,26 @@ window.generatePDFFromData = function(data, saveMode = false) {
     const dateStr = data.info.date ? data.info.date.split('-').reverse().join('/') : "";
     doc.text(`du ${dateStr}`, 90, y); 
     
-    // --- DÉFUNT & DATES ---
+    // --- BLOC DÉFUNT AVEC DATES ---
     doc.setFont("helvetica","bold"); 
-    const nomDefunt = `${data.defunt.civility || ''} ${data.defunt.nom || ''}`;
-    doc.text(`DÉFUNT : ${nomDefunt}`, 130, y); 
-    y += 5; // On descend un peu
+    const defuntNom = `${data.defunt.civility || ''} ${data.defunt.nom || ''}`;
+    doc.text(`DÉFUNT : ${defuntNom}`, 130, y); 
+    y += 5;
     
-    // Affichage Dates
     doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(100);
-    let ligneDates = "";
-    if(data.defunt.date_naiss) ligneDates += `Né(e) le ${data.defunt.date_naiss.split('-').reverse().join('/')} `;
-    if(data.defunt.date_deces) ligneDates += `- Décédé(e) le ${data.defunt.date_deces.split('-').reverse().join('/')}`;
-    if(ligneDates) doc.text(ligneDates, 130, y);
     
-    y += 8; // Marge après défunt
+    // Formatage des dates pour affichage
+    const dateN = data.defunt.date_naiss ? data.defunt.date_naiss.split('-').reverse().join('/') : "";
+    const dateD = data.defunt.date_deces ? data.defunt.date_deces.split('-').reverse().join('/') : "";
+    
+    if(dateN || dateD) {
+        let textDates = "";
+        if(dateN) textDates += `Né(e) le : ${dateN}`;
+        if(dateN && dateD) textDates += "  -  ";
+        if(dateD) textDates += `Décédé(e) le : ${dateD}`;
+        doc.text(textDates, 130, y);
+    }
+    y += 8;
 
     // Tableau
     const rows = [];
@@ -149,13 +156,14 @@ window.generatePDFFromData = function(data, saveMode = false) {
     if (saveMode) { doc.save(`${typeDoc}_${numDoc}.pdf`); } else { window.open(doc.output('bloburl'), '_blank'); }
 };
 
-// --- LE RESTE DU CODE (FONCTIONNEL) ---
+// --- NAVIGATION UI ---
 window.switchTab = function(tab) {
     document.getElementById('tab-factures').classList.add('hidden');
     document.getElementById('tab-achats').classList.add('hidden');
     document.getElementById('btn-tab-factures').classList.remove('active');
     document.getElementById('btn-tab-achats').classList.remove('active');
     document.getElementById('btn-tab-achats').classList.remove('active-red');
+    
     if(tab === 'factures') { document.getElementById('tab-factures').classList.remove('hidden'); document.getElementById('btn-tab-factures').classList.add('active'); }
     else { document.getElementById('tab-achats').classList.remove('hidden'); document.getElementById('btn-tab-achats').classList.add('active-red'); window.chargerDepenses(); }
 };
@@ -171,15 +179,16 @@ window.nouveauDocument = function() {
     document.getElementById('doc_numero').value = "Auto";
     document.getElementById('client_nom').value = ""; document.getElementById('client_adresse').value = "";
     document.getElementById('defunt_nom').value = ""; 
-    document.getElementById('defunt_date_naiss').value = ""; // Reset date
-    document.getElementById('defunt_date_deces').value = ""; // Reset date
     document.getElementById('doc_date').valueAsDate = new Date();
+    document.getElementById('defunt_date_naiss').value = ""; 
+    document.getElementById('defunt_date_deces').value = ""; 
     document.getElementById('doc_type').value = "DEVIS"; document.getElementById('tbody_lignes').innerHTML = "";
     paiements = []; window.renderPaiements(); window.calculTotal();
     document.getElementById('btn-transform').classList.add('hidden');
     document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-editor').classList.remove('hidden');
 };
 
+// --- LOGIQUE FACTURES ---
 window.chargerListeFactures = async function() {
     const tbody = document.getElementById('list-body'); tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Chargement...</td></tr>';
     try {
@@ -305,11 +314,4 @@ async function chargerSuggestionsClients() { try { const q = query(collection(db
 window.imprimerDocumentActuel = function() { document.getElementById('btn-pdf').click(); };
 window.toggleSidebar = function() { const sb = document.querySelector('.sidebar'); if(window.innerWidth < 768) { sb.classList.toggle('mobile-open'); document.getElementById('mobile-overlay').style.display = sb.classList.contains('mobile-open') ? 'block' : 'none'; } else { sb.classList.toggle('collapsed'); } };
 window.trierTableau = function(col) { if (currentSort.col === col) { currentSort.order = (currentSort.order === 'asc') ? 'desc' : 'asc'; } else { currentSort.col = col; currentSort.order = 'asc'; } window.filtrerDepenses(); };
-window.transformerEnFacture = async function() { 
-    if(confirm("Créer une FACTURE à partir de ce devis ?")) { 
-        document.getElementById('doc_type').value = "FACTURE"; 
-        document.getElementById('doc_date').valueAsDate = new Date(); 
-        document.getElementById('current_doc_id').value = ""; // Force nouvelle création
-        window.sauvegarderDocument(); // Appelle la sauvegarde qui générera un nouveau numéro F-202X-XXX
-    } 
-};
+window.transformerEnFacture = async function() { if(confirm("Créer une FACTURE à partir de ce devis ?")) { document.getElementById('doc_type').value = "FACTURE"; document.getElementById('doc_date').valueAsDate = new Date(); document.getElementById('current_doc_id').value = ""; window.sauvegarderDocument(); } };
