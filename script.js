@@ -1,6 +1,4 @@
-/* Fichier : script.js (CHEF D'ORCHESTRE - VERSION MODULAIRE) */
-
-// 1. IMPORTS (On récupère nos outils)
+/* script.js (RACINE) - CHEF D'ORCHESTRE */
 import { auth } from './js/config.js'; 
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
@@ -9,7 +7,7 @@ import * as PDF from './js/pdf_admin.js';
 import * as Clients from './js/client_manager.js';
 import * as Stock from './js/stock_manager.js';
 
-// 2. BRANCHEMENT (C'est ici qu'on réactive les boutons !)
+// 1. BRANCHEMENT DES BOUTONS (EXPOSITION GLOBALE)
 window.genererPouvoir = PDF.genererPouvoir;
 window.genererDeclaration = PDF.genererDeclaration;
 window.genererDemandeInhumation = PDF.genererDemandeInhumation;
@@ -27,20 +25,12 @@ window.sauvegarderDossier = Clients.sauvegarderDossier;
 window.chargerBaseClients = Clients.chargerBaseClients; 
 
 // Fonctions Stock
-window.ajouterArticle = Stock.ajouterArticle;
+window.ajouterArticleStock = Stock.ajouterArticle;
 window.supprimerArticle = Stock.supprimerArticle;
 window.mouvementStock = Stock.mouvementStock;
 window.chargerStock = Stock.chargerStock; 
-window.ajouterArticleStock = Stock.ajouterArticle; // Alias pour compatibilité
 
-// Outils UI (Fonctions d'affichage)
-window.openAjoutStock = function() {
-    document.getElementById('form-stock').classList.remove('hidden');
-    document.getElementById('st_nom').value = "";
-    document.getElementById('st_qte').value = "1";
-};
-
-// 3. GESTION DE L'AUTHENTIFICATION & NAVIGATION
+// 2. AUTHENTIFICATION
 const loginScreen = document.getElementById('login-screen');
 const appLoader = document.getElementById('app-loader');
 
@@ -71,7 +61,6 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Connexion / Déconnexion
 window.loginFirebase = async function() {
     try {
         await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
@@ -82,39 +71,33 @@ window.logoutFirebase = async function() {
     if(confirm("Se déconnecter ?")) { await signOut(auth); window.location.reload(); }
 };
 
-// 4. NAVIGATION (Afficher Accueil, Admin, Stock...)
+window.resetPassword = async function() {
+    const email = document.getElementById('login-email').value;
+    if(email) {
+        try { await sendPasswordResetEmail(auth, email); alert("Email envoyé !"); } 
+        catch(e) { alert("Erreur : " + e.message); }
+    } else { alert("Entrez votre email d'abord."); }
+};
+
+// 3. NAVIGATION & UI
 window.showSection = function(sectionId) {
-    // Cacher toutes les vues
     ['home', 'admin', 'base', 'stock'].forEach(id => {
         const el = document.getElementById('view-' + id);
         if(el) el.classList.add('hidden');
     });
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
     
-    // Afficher la cible
     const target = document.getElementById('view-' + sectionId);
     if(target) target.classList.remove('hidden');
     
-    // Recharger les données si besoin
+    // Active le menu
+    const btn = document.querySelector(`a[onclick*="${sectionId}"]`);
+    if(btn) btn.classList.add('active');
+    
     if(sectionId === 'base') Clients.chargerBaseClients();
     if(sectionId === 'stock') Stock.chargerStock();
 };
 
-// Fonction Ouvrir Dossier (Nouveau ou Existant)
-function ouvrirDossier(id = null) {
-    document.getElementById('dossier_id').value = id || "";
-    // Si ID vide = Nouveau dossier (reset champs)
-    if(!id) {
-        document.querySelectorAll('#view-admin input').forEach(i => i.value = "");
-        document.getElementById('prestation').selectedIndex = 0;
-        document.getElementById('faita').value = "PERPIGNAN";
-        document.getElementById('dateSignature').valueAsDate = new Date();
-    }
-    // Note : Pour l'édition d'un dossier existant, il faudrait ajouter ici l'appel à Clients.chargerDossier(id)
-    // Pour l'instant, cela ouvre juste le formulaire.
-    window.showSection('admin');
-}
-
-// Fonction Onglets Admin
 window.switchAdminTab = function(tabName) {
     document.getElementById('tab-content-identite').classList.add('hidden');
     document.getElementById('tab-content-technique').classList.add('hidden');
@@ -125,7 +108,7 @@ window.switchAdminTab = function(tabName) {
     document.getElementById('tab-btn-' + tabName).classList.add('active');
 };
 
-// Toggle Sections (Inhumation/Crémation...)
+// Logique Formulaire Admin
 window.toggleSections = function() {
     const type = document.getElementById('prestation').value;
     document.querySelectorAll('.specific-block').forEach(el => el.classList.add('hidden'));
@@ -135,12 +118,54 @@ window.toggleSections = function() {
     if(type === 'Rapatriement') document.getElementById('bloc_rapatriement').classList.remove('hidden');
 };
 
-// Toggle Police
 window.togglePolice = function() {
     const val = document.getElementById('type_presence_select').value;
     document.getElementById('police_fields').classList.toggle('hidden', val !== 'police');
     document.getElementById('famille_fields').classList.toggle('hidden', val === 'police');
 };
+
+window.toggleVol2 = function() {
+    const chk = document.getElementById('check_vol2');
+    if(chk) document.getElementById('bloc_vol2').classList.toggle('hidden', !chk.checked);
+};
+
+window.copierMandant = function() {
+    if(document.getElementById('copy_mandant').checked) {
+        const civ = document.getElementById('civilite_mandant').value;
+        const nom = document.getElementById('soussigne').value;
+        document.getElementById('f_nom_prenom').value = `${civ} ${nom}`;
+        document.getElementById('f_lien').value = document.getElementById('lien').value;
+    }
+};
+
+window.openAjoutStock = function() {
+    document.getElementById('form-stock').classList.remove('hidden');
+    document.getElementById('st_nom').value = "";
+    document.getElementById('st_qte').value = "1";
+};
+
+window.viderFormulaire = function() {
+    if(confirm("Tout effacer pour un nouveau dossier ?")) ouvrirDossier(null);
+};
+
+// Fonction Ouvrir Dossier (Nouveau ou Existant)
+// Note: Pour l'instant, l'édition complète nécessite de lier `chargerDossier` dans client_manager.js
+// Ici on fait le reset basique pour "Nouveau".
+function ouvrirDossier(id = null) {
+    document.getElementById('dossier_id').value = id || "";
+    
+    if(!id) {
+        // Reset inputs
+        document.querySelectorAll('#view-admin input').forEach(i => i.value = "");
+        document.getElementById('prestation').selectedIndex = 0;
+        document.getElementById('faita').value = "PERPIGNAN";
+        document.getElementById('dateSignature').valueAsDate = new Date();
+        document.getElementById('immatriculation').value = "DA-081-ZQ";
+        document.getElementById('rap_immat').value = "DA-081-ZQ";
+        window.toggleSections();
+    }
+    window.showSection('admin');
+}
 
 // Menu Mobile
 window.toggleSidebar = function() {

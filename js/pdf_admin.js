@@ -1,4 +1,4 @@
-/* Fichier : js/pdf_admin.js */
+/* js/pdf_admin.js - GÉNÉRATEUR DE DOCUMENTS */
 import { getVal, formatDate, logoBase64, chargerLogoBase64, ajouterFiligrane, headerPF } from './utils.js';
 
 // --- 1. POUVOIR ---
@@ -7,7 +7,7 @@ export function genererPouvoir() {
     const { jsPDF } = window.jspdf; const pdf = new jsPDF();
     ajouterFiligrane(pdf); headerPF(pdf);
     
-    let typePresta = getVal("prestation").toUpperCase();
+    let typePresta = document.getElementById("prestation").value.toUpperCase();
     if(typePresta === "RAPATRIEMENT") typePresta += ` vers ${getVal("rap_pays").toUpperCase()}`;
     
     pdf.setFillColor(241, 245, 249); pdf.rect(20, 45, 170, 12, 'F');

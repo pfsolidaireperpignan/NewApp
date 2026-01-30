@@ -1,10 +1,9 @@
-/* Fichier : js/client_manager.js */
-// On importe "db" depuis votre config locale, MAIS les outils (collection, query...) depuis Internet (CDN)
+/* js/client_manager.js */
 import { db } from './config.js';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getVal } from './utils.js';
 
-// --- CHARGER LA LISTE DES CLIENTS ---
+// --- CHARGER LA LISTE ---
 export async function chargerBaseClients() {
     const tbody = document.getElementById('clients-table-body');
     if(!tbody) return;
@@ -23,14 +22,17 @@ export async function chargerBaseClients() {
 
         querySnapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            const nomMandant = data.mandant ? data.mandant.nom : '?';
+            const nomDefunt = data.defunt ? data.defunt.nom : '?';
+            const dateDeces = data.defunt ? data.defunt.date_deces : '?';
+            
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><strong>${data.mandant ? data.mandant.nom : '?'}</strong></td>
-                <td>${data.defunt ? data.defunt.nom : '?'}</td>
-                <td>${data.defunt ? data.defunt.date_deces : '?'}</td>
-                <td><span class="badge badge-regle">${data.type_obseques || 'Non défini'}</span></td>
                 <td>${new Date(data.date_creation).toLocaleDateString()}</td>
-                <td>
+                <td><strong>${nomDefunt}</strong> (${dateDeces})</td>
+                <td>${nomMandant}</td>
+                <td><span class="badge badge-regle">${data.type_obseques || 'Non défini'}</span></td>
+                <td style="text-align:center;">
                     <button class="btn-icon" onclick="window.ouvrirDossier('${docSnap.id}')" title="Modifier"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon" style="color:red;" onclick="window.supprimerDossier('${docSnap.id}')" title="Supprimer"><i class="fas fa-trash"></i></button>
                 </td>
@@ -45,13 +47,8 @@ export async function chargerBaseClients() {
 
 // --- SAUVEGARDER UN DOSSIER ---
 export async function sauvegarderDossier() {
-    const btn = document.getElementById('btn-save-dossier'); // Note: Vérifiez que votre bouton a bien cet ID dans le HTML, sinon utilisez 'btn-save-bdd'
-    const actualBtn = btn || document.getElementById('btn-save-bdd'); // Fallback
-    
-    if(actualBtn) {
-        actualBtn.innerHTML = "Sauvegarde..."; 
-        actualBtn.disabled = true;
-    }
+    const btn = document.getElementById('btn-save-bdd');
+    if(btn) { btn.innerHTML = "Sauvegarde..."; btn.disabled = true; }
 
     try {
         const dossierData = {
@@ -76,19 +73,29 @@ export async function sauvegarderDossier() {
                 situation: getVal("matrimoniale"),
                 conjoint: getVal("conjoint"),
                 profession: getVal("prof_type"),
+                profession_libelle: getVal("profession_libelle"),
                 nationalite: getVal("nationalite")
             },
             type_obseques: getVal("prestation"),
-            date_mise_biere: getVal("date_fermeture"),
-            lieu_mise_biere: getVal("lieu_mise_biere"),
-            cimetiere: getVal("cimetiere_nom"),
-            
+            technique: {
+                mise_biere: getVal("lieu_mise_biere"),
+                date_fermeture: getVal("date_fermeture"),
+                vehicule: getVal("immatriculation"),
+                presence: document.getElementById('type_presence_select').value
+            },
+            details_op: {
+                cimetiere: getVal("cimetiere_nom"),
+                concession: getVal("num_concession"),
+                titulaire: getVal("titulaire_concession"),
+                crematorium: getVal("crematorium_nom"),
+                dest_cendres: getVal("destination_cendres")
+            },
             lastModified: new Date().toISOString(),
             dateSignature: getVal("dateSignature"),
             villeSignature: getVal("faita")
         };
 
-        const id = document.getElementById('dossier_id').value; // ID du champ caché dans votre HTML
+        const id = document.getElementById('dossier_id').value;
 
         if (id) {
             await updateDoc(doc(db, "dossiers_admin", id), dossierData);
@@ -99,7 +106,7 @@ export async function sauvegarderDossier() {
             alert("✅ Nouveau dossier créé !");
         }
         
-        window.showSection('base');
+        window.showSection('base'); // Retour liste
         chargerBaseClients();
 
     } catch (e) {
@@ -107,12 +114,10 @@ export async function sauvegarderDossier() {
         alert("Erreur sauvegarde : " + e.message);
     }
     
-    if(actualBtn) {
-        actualBtn.innerHTML = '<i class="fas fa-save"></i> ENREGISTRER'; 
-        actualBtn.disabled = false;
-    }
+    if(btn) { btn.innerHTML = '<i class="fas fa-save"></i> ENREGISTRER'; btn.disabled = false; }
 }
 
+// --- SUPPRIMER ---
 export async function supprimerDossier(id) {
     if(confirm("ATTENTION : Cette suppression est définitive.\nConfirmer ?")) {
         try {

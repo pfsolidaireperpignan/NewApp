@@ -1,4 +1,4 @@
-/* Fichier : js/utils.js */
+/* js/utils.js */
 export let logoBase64 = null;
 
 export function chargerLogoBase64() {
@@ -15,6 +15,11 @@ export function chargerLogoBase64() {
 export function getVal(id) {
     const el = document.getElementById(id);
     return el ? el.value : "";
+}
+
+export function setVal(id, val) {
+    const el = document.getElementById(id);
+    if(el) el.value = val || "";
 }
 
 export function formatDate(d) {
